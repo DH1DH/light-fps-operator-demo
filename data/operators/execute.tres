@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="OperatorDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/operators/operator_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "execute"
+display_name = "Execute"
+description = "Consume marks to deal bonus damage."
+cost = 30
+free_copies = 1
+kind = 5
+int_value = 1
+float_value = 3.0

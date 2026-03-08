@@ -1,0 +1,137 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/scene/range_scene.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/target_dummy.tscn" id="3"]
+[ext_resource type="Script" path="res://scripts/ui/range_hud.gd" id="4"]
+[ext_resource type="Script" path="res://scripts/ui/debug_panel.gd" id="5"]
+
+[sub_resource type="Environment" id="1"]
+background_mode = 1
+background_color = Color(0.11, 0.12, 0.16, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.85, 0.89, 0.95, 1)
+
+[sub_resource type="PlaneMesh" id="2"]
+size = Vector2(50, 50)
+
+[sub_resource type="BoxShape3D" id="3"]
+size = Vector3(50, 0.2, 50)
+
+[node name="RangeScene" type="Node3D"]
+script = ExtResource("1")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("1")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.95, -0.52, 0)
+
+[node name="Ground" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ground"]
+shape = SubResource("3")
+
+[node name="GroundMesh" type="MeshInstance3D" parent="Ground"]
+mesh = SubResource("2")
+
+[node name="Player" parent="." instance=ExtResource("2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, -10)
+
+[node name="TargetA" parent="." instance=ExtResource("3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 1, 12)
+
+[node name="TargetB" parent="." instance=ExtResource("3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 14)
+
+[node name="TargetC" parent="." instance=ExtResource("3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 1, 16)
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="HUD" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("4")
+
+[node name="Panel" type="PanelContainer" parent="CanvasLayer/HUD"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = 150.0
+grow_horizontal = 2
+
+[node name="VBox" type="VBoxContainer" parent="CanvasLayer/HUD/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ChainLabel" type="Label" parent="CanvasLayer/HUD/Panel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Chain: (empty)"
+
+[node name="ShotLabel" type="Label" parent="CanvasLayer/HUD/Panel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Predicted Shot"
+
+[node name="ControlsLabel" type="Label" parent="CanvasLayer/HUD/Panel/VBox"]
+layout_mode = 2
+text = "LMB Shoot | WASD Move | Mouse Look | R Reset Targets | Esc Toggle Cursor"
+
+[node name="Buttons" type="HBoxContainer" parent="CanvasLayer/HUD/Panel/VBox"]
+layout_mode = 2
+
+[node name="ReturnHubButton" type="Button" parent="CanvasLayer/HUD/Panel/VBox/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Return Hub"
+
+[node name="Crosshair" type="ColorRect" parent="CanvasLayer/HUD"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -4.0
+offset_top = -4.0
+offset_right = 4.0
+offset_bottom = 4.0
+color = Color(0.2, 1, 0.35, 0.95)
+
+[node name="DebugPanel" type="PanelContainer" parent="CanvasLayer/HUD"]
+layout_mode = 1
+offset_left = 10.0
+offset_top = 170.0
+offset_right = 620.0
+offset_bottom = 520.0
+script = ExtResource("5")
+
+[node name="DebugMargin" type="MarginContainer" parent="CanvasLayer/HUD/DebugPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="DebugVBox" type="VBoxContainer" parent="CanvasLayer/HUD/DebugPanel/DebugMargin"]
+layout_mode = 2
+
+[node name="DebugTitle" type="Label" parent="CanvasLayer/HUD/DebugPanel/DebugMargin/DebugVBox"]
+layout_mode = 2
+text = "Debug"
+
+[node name="DebugText" type="RichTextLabel" parent="CanvasLayer/HUD/DebugPanel/DebugMargin/DebugVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(580, 300)
+bbcode_enabled = false
+scroll_following = true

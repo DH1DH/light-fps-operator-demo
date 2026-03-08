@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="OperatorDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/operators/operator_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "duplicate_x2"
+display_name = "Duplicate X2"
+description = "Double pellet count."
+cost = 35
+free_copies = 1
+kind = 0
+int_value = 2
+float_value = 1.0

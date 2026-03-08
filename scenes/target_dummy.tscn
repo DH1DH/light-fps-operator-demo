@@ -1,0 +1,31 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/target_dummy.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/combat/status_controller.gd" id="2"]
+
+[sub_resource type="CapsuleMesh" id="1"]
+radius = 0.5
+mid_height = 1.0
+
+[sub_resource type="CapsuleShape3D" id="2"]
+radius = 0.5
+height = 2.0
+
+[node name="TargetDummy" type="StaticBody3D"]
+script = ExtResource("1")
+groups = ["target_dummy"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("2")
+
+[node name="Visual" type="MeshInstance3D" parent="."]
+mesh = SubResource("1")
+
+[node name="StatusController" type="Node" parent="."]
+script = ExtResource("2")
+
+[node name="Label" type="Label3D" parent="."]
+position = Vector3(0, 1.8, 0)
+billboard = 1
+font_size = 64
+text = "HP"

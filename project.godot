@@ -1,0 +1,24 @@
+; Engine configuration file.
+; Best edited using the editor.
+;
+; Format:
+;   [section]
+;   param=value
+
+config_version=5
+
+[application]
+
+config/name="light-fps-operator-demo-godot"
+run/main_scene="res://scenes/hub_scene.tscn"
+config/features=PackedStringArray("4.2")
+
+[autoload]
+
+GameState="*res://scripts/core/game_state.gd"
+DebugLog="*res://scripts/core/debug_log.gd"
+
+[display]
+
+window/size/viewport_width=1600
+window/size/viewport_height=900
