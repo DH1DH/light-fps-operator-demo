@@ -10,6 +10,8 @@ class_name WeaponShooter
 @export var tracer_width: float = 0.08
 @export var impact_lifetime: float = 0.25
 @export var tracer_muzzle_offset: Vector3 = Vector3(0.28, -0.18, -0.35)
+@export var tracer_segments: int = 8
+@export var tracer_segment_gap: float = 0.012
 
 @onready var shoot_camera: Camera3D = $"../CameraPivot/Camera3D"
 
@@ -120,35 +122,42 @@ func _get_tracer_start() -> Vector3:
 
 
 func _spawn_tracer(start: Vector3, end: Vector3) -> void:
-	var tracer := MeshInstance3D.new()
-	var mesh := CylinderMesh.new()
 	var distance: float = start.distance_to(end)
-	mesh.top_radius = tracer_width * 0.5
-	mesh.bottom_radius = tracer_width * 0.5
-	mesh.height = maxf(0.15, distance)
-	mesh.radial_segments = 12
-	mesh.rings = 1
-	tracer.mesh = mesh
+	var direction: Vector3 = (end - start).normalized()
+	var segment_count: int = max(2, tracer_segments)
+	var segment_length: float = maxf(0.08, distance / float(segment_count))
+	for index in range(segment_count):
+		var segment := MeshInstance3D.new()
+		var mesh := CylinderMesh.new()
+		mesh.top_radius = tracer_width * 0.5
+		mesh.bottom_radius = tracer_width * 0.5
+		mesh.height = segment_length
+		mesh.radial_segments = 10
+		mesh.rings = 1
+		segment.mesh = mesh
 
-	var material := StandardMaterial3D.new()
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.albedo_color = Color(1.0, 0.97, 0.55, 1.0)
-	material.emission_enabled = true
-	material.emission = Color(1.0, 0.95, 0.55, 1.0)
-	material.emission_energy_multiplier = 10.0
-	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.no_depth_test = true
-	material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	tracer.set_surface_override_material(0, material)
+		var material := StandardMaterial3D.new()
+		material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		material.albedo_color = Color(1.0, 0.97, 0.55, 1.0)
+		material.emission_enabled = true
+		material.emission = Color(1.0, 0.95, 0.55, 1.0)
+		material.emission_energy_multiplier = 10.0
+		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		material.no_depth_test = true
+		material.cull_mode = BaseMaterial3D.CULL_DISABLED
+		segment.set_surface_override_material(0, material)
 
-	get_tree().current_scene.add_child(tracer)
-	tracer.global_position = (start + end) * 0.5
-	tracer.look_at(end, Vector3.UP, true)
-	tracer.rotate_object_local(Vector3.RIGHT, deg_to_rad(90.0))
+		get_tree().current_scene.add_child(segment)
+		var center_ratio: float = (float(index) + 0.5) / float(segment_count)
+		var center: Vector3 = start.lerp(end, center_ratio)
+		segment.global_position = center
+		segment.look_at(center + direction, Vector3.UP, true)
+		segment.rotate_object_local(Vector3.RIGHT, deg_to_rad(90.0))
 
-	var tween := create_tween()
-	tween.tween_property(material, "albedo_color:a", 0.0, tracer_lifetime)
-	tween.finished.connect(tracer.queue_free)
+		var tween := create_tween()
+		tween.tween_interval(float(index) * tracer_segment_gap)
+		tween.tween_property(material, "albedo_color:a", 0.0, tracer_lifetime)
+		tween.finished.connect(segment.queue_free)
 
 
 func _spawn_impact_marker(position: Vector3) -> void:

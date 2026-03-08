@@ -23,9 +23,3 @@ mesh = SubResource("1")
 
 [node name="StatusController" type="Node" parent="."]
 script = ExtResource("2")
-
-[node name="Label" type="Label3D" parent="."]
-position = Vector3(0, 1.8, 0)
-billboard = 1
-font_size = 64
-text = "HP"

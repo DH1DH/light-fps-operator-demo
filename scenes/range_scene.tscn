@@ -1,10 +1,12 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/scene/range_scene.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/target_dummy.tscn" id="3"]
 [ext_resource type="Script" path="res://scripts/ui/range_hud.gd" id="4"]
 [ext_resource type="Script" path="res://scripts/ui/debug_panel.gd" id="5"]
+[ext_resource type="Shader" path="res://scripts/ui/ps2_buckshot_post.gdshader" id="6"]
+[ext_resource type="Script" path="res://scripts/ui/target_overlay_layer.gd" id="7"]
 
 [sub_resource type="Environment" id="1"]
 background_mode = 1
@@ -17,6 +19,9 @@ size = Vector2(50, 50)
 
 [sub_resource type="BoxShape3D" id="3"]
 size = Vector3(50, 0.2, 50)
+
+[sub_resource type="ShaderMaterial" id="4"]
+shader = ExtResource("6")
 
 [node name="RangeScene" type="Node3D"]
 script = ExtResource("1")
@@ -57,6 +62,30 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("4")
+
+[node name="PostFX" type="ColorRect" parent="CanvasLayer/HUD"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+material = SubResource("4")
+color = Color(1, 1, 1, 1)
+
+[node name="PerformanceLabel" type="Label" parent="CanvasLayer/HUD"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -260.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = 36.0
+horizontal_alignment = 2
+text = "FPS: -- | Frame: -- ms"
 
 [node name="Panel" type="PanelContainer" parent="CanvasLayer/HUD"]
 layout_mode = 1
@@ -107,6 +136,16 @@ offset_right = 4.0
 offset_bottom = 4.0
 color = Color(0.2, 1, 0.35, 0.95)
 
+[node name="TargetOverlayLayer" type="Control" parent="CanvasLayer/HUD"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("7")
+
 [node name="DebugPanel" type="PanelContainer" parent="CanvasLayer/HUD"]
 layout_mode = 1
 offset_left = 10.0
@@ -125,11 +164,17 @@ theme_override_constants/margin_bottom = 8
 [node name="DebugVBox" type="VBoxContainer" parent="CanvasLayer/HUD/DebugPanel/DebugMargin"]
 layout_mode = 2
 
-[node name="DebugTitle" type="Label" parent="CanvasLayer/HUD/DebugPanel/DebugMargin/DebugVBox"]
+[node name="DebugToggleButton" type="Button" parent="CanvasLayer/HUD/DebugPanel/DebugMargin/DebugVBox"]
+unique_name_in_owner = true
 layout_mode = 2
-text = "Debug"
+text = "Debug +"
 
-[node name="DebugText" type="RichTextLabel" parent="CanvasLayer/HUD/DebugPanel/DebugMargin/DebugVBox"]
+[node name="DebugContent" type="VBoxContainer" parent="CanvasLayer/HUD/DebugPanel/DebugMargin/DebugVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+visible = false
+
+[node name="DebugText" type="RichTextLabel" parent="CanvasLayer/HUD/DebugPanel/DebugMargin/DebugVBox/DebugContent"]
 unique_name_in_owner = true
 layout_mode = 2
 custom_minimum_size = Vector2(580, 300)

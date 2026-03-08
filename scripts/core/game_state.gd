@@ -4,7 +4,7 @@ signal state_changed
 
 const OPERATOR_DIR: String = "res://data/operators"
 
-@export var starting_gold: int = 200
+@export var starting_gold: int = 999999
 
 var gold: int = 0
 var all_definitions: Array[OperatorDefinition] = []

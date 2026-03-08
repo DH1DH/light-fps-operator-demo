@@ -2,6 +2,7 @@ extends Control
 
 @onready var chain_label: Label = %ChainLabel
 @onready var shot_label: Label = %ShotLabel
+@onready var performance_label: Label = %PerformanceLabel
 
 var _shooter: WeaponShooter
 
@@ -10,7 +11,10 @@ func _ready() -> void:
 	_shooter = get_tree().get_first_node_in_group("weapon_shooter") as WeaponShooter
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	var fps: float = Engine.get_frames_per_second()
+	var frame_ms: float = delta * 1000.0
+	performance_label.text = "FPS: %.0f | Frame: %.2f ms" % [fps, frame_ms]
 	if _shooter == null:
 		_shooter = get_tree().get_first_node_in_group("weapon_shooter") as WeaponShooter
 		return

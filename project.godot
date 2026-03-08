@@ -22,3 +22,7 @@ DebugLog="*res://scripts/core/debug_log.gd"
 
 window/size/viewport_width=1600
 window/size/viewport_height=900
+
+[physics]
+
+common/physics_interpolation=true
