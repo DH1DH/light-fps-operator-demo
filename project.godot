@@ -10,7 +10,7 @@ config_version=5
 [application]
 
 config/name="light-fps-operator-demo-godot"
-run/main_scene="res://scenes/hub_scene.tscn"
+run/main_scene="res://scenes/range_scene.tscn"
 config/features=PackedStringArray("4.2")
 
 [autoload]
