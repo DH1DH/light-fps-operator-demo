@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1")
-id = "scatter"
-display_name = "散射"
-description = "OnFire：散布角固定为 8°"
-cost = 14
+id = "spawn"
+display_name = "孵化"
+description = "OnHit：种子达到阈值时召唤并消耗种子"
+cost = 30
 free_copies = 1
-kind = 2
-int_value = 1
-float_value = 8.0
+kind = 10
+int_value = 3
+float_value = 10.0

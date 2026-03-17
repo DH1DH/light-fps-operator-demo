@@ -4,10 +4,10 @@
 
 [resource]
 script = ExtResource("1")
-id = "mark_on_hit"
-display_name = "Mark On Hit"
-description = "Apply mark stacks to the target."
-cost = 25
+id = "mark"
+display_name = "印记 +1"
+description = "OnHit：印记层数 +1"
+cost = 18
 free_copies = 1
 kind = 4
 int_value = 1

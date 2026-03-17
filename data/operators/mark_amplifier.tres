@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1")
-id = "scatter"
-display_name = "散射"
-description = "OnFire：散布角固定为 8°"
-cost = 14
+id = "mark_amplifier"
+display_name = "印记增幅"
+description = "OnHit：若已有印记，则额外 +1"
+cost = 26
 free_copies = 1
-kind = 2
+kind = 5
 int_value = 1
-float_value = 8.0
+float_value = 1.0

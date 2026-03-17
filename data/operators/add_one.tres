@@ -5,9 +5,9 @@
 [resource]
 script = ExtResource("1")
 id = "add_one"
-display_name = "Add One"
-description = "Add one pellet before the shot is fired."
-cost = 20
+display_name = "+1（增量）"
+description = "OnFire：弹体数 +1"
+cost = 18
 free_copies = 1
 kind = 1
 int_value = 1

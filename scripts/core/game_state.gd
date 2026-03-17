@@ -3,12 +3,14 @@ extends Node
 signal state_changed
 
 const OPERATOR_DIR: String = "res://data/operators"
+const OperatorDefinition = preload("res://scripts/operators/operator_definition.gd")
 
 @export var starting_gold: int = 999999
 
 var gold: int = 0
 var all_definitions: Array[OperatorDefinition] = []
 var loadout: Array[OperatorDefinition] = []
+var operator_menu_open: bool = false
 var _inventory: Dictionary = {}
 var _initialized: bool = false
 
@@ -60,6 +62,17 @@ func buy_operator(definition: OperatorDefinition) -> bool:
 	return true
 
 
+func add_gold(amount: int) -> void:
+	if amount <= 0:
+		return
+	gold += amount
+	state_changed.emit()
+
+
+func set_operator_menu_open(open: bool) -> void:
+	operator_menu_open = open
+
+
 func add_to_inventory(definition: OperatorDefinition, amount: int) -> void:
 	if definition == null or amount <= 0:
 		return
@@ -78,6 +91,7 @@ func remove_loadout_at(index: int) -> void:
 	if index < 0 or index >= loadout.size():
 		return
 	loadout.remove_at(index)
+	_seed_default_loadout()
 	state_changed.emit()
 
 
@@ -116,13 +130,14 @@ func _load_definitions() -> Array[OperatorDefinition]:
 	return definitions
 
 
-func _seed_default_loadout() -> void:
+func _seed_default_loadout() -> bool:
 	if not loadout.is_empty():
-		return
+		return false
 	for definition in all_definitions:
 		if get_unslotted_count(definition) > 0:
 			loadout.append(definition)
-			return
+			return true
+	return false
 
 
 func _ensure_input_map() -> void:
@@ -132,6 +147,7 @@ func _ensure_input_map() -> void:
 	_add_key_action("move_right", KEY_D)
 	_add_key_action("reset_targets", KEY_R)
 	_add_key_action("toggle_cursor", KEY_ESCAPE)
+	_add_key_action("toggle_operator_menu", KEY_TAB)
 	if not InputMap.has_action("shoot"):
 		InputMap.add_action("shoot")
 	var mouse: InputEventMouseButton = InputEventMouseButton.new()

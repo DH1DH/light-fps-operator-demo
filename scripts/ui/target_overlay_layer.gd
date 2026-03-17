@@ -1,7 +1,9 @@
 extends Control
+const TargetDummy = preload("res://scripts/combat/target_dummy.gd")
 
 var _labels: Dictionary = {}
 var _font: SystemFont
+var _pulse_time: float = 0.0
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -11,6 +13,7 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	_pulse_time += _delta
 	var camera: Camera3D = get_viewport().get_camera_3d()
 	if camera == null:
 		return
@@ -27,6 +30,12 @@ func _process(_delta: float) -> void:
 		var screen_pos: Vector2 = camera.unproject_position(world_pos)
 		label.position = screen_pos - Vector2(label.size.x * 0.5, label.size.y)
 		label.text = target.get_overlay_text()
+		label.modulate = target.get_overlay_color()
+		if target.is_execute_ready():
+			var pulse: float = 1.0 + 0.1 * sin(_pulse_time * 9.0)
+			label.scale = Vector2.ONE * pulse
+		else:
+			label.scale = Vector2.ONE
 		label.visible = true
 		active[target] = true
 	for target in _labels.keys():

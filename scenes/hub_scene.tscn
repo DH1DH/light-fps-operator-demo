@@ -39,7 +39,7 @@ theme_override_constants/separation = 10
 [node name="GoldLabel" type="Label" parent="Margin/Root"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Gold: 0"
+text = "金币：0"
 
 [node name="TopBar" type="HBoxContainer" parent="Margin/Root"]
 layout_mode = 2
@@ -48,11 +48,11 @@ theme_override_constants/separation = 8
 [node name="EnterRangeButton" type="Button" parent="Margin/Root/TopBar"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Enter Range"
+text = "进入靶场"
 
 [node name="Hint" type="Label" parent="Margin/Root"]
 layout_mode = 2
-text = "Buy operators -> Add to loadout -> Enter Range"
+text = "购买算子 -> 加入装配链 -> 进入靶场"
 
 [node name="Columns" type="HBoxContainer" parent="Margin/Root"]
 layout_mode = 2
@@ -70,7 +70,7 @@ theme_override_constants/separation = 6
 
 [node name="InventoryTitle" type="Label" parent="Margin/Root/Columns/InventoryPanel/InventoryBox"]
 layout_mode = 2
-text = "Inventory"
+text = "背包"
 
 [node name="InventoryScroll" type="ScrollContainer" parent="Margin/Root/Columns/InventoryPanel/InventoryBox"]
 layout_mode = 2
@@ -92,7 +92,7 @@ theme_override_constants/separation = 6
 
 [node name="ShopTitle" type="Label" parent="Margin/Root/Columns/ShopPanel/ShopBox"]
 layout_mode = 2
-text = "Shop"
+text = "商店"
 
 [node name="ShopScroll" type="ScrollContainer" parent="Margin/Root/Columns/ShopPanel/ShopBox"]
 layout_mode = 2
@@ -114,7 +114,7 @@ theme_override_constants/separation = 6
 
 [node name="LoadoutTitle" type="Label" parent="Margin/Root/Columns/LoadoutPanel/LoadoutBox"]
 layout_mode = 2
-text = "Loadout"
+text = "装配链"
 
 [node name="LoadoutScroll" type="ScrollContainer" parent="Margin/Root/Columns/LoadoutPanel/LoadoutBox"]
 layout_mode = 2

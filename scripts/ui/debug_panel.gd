@@ -31,6 +31,6 @@ func _toggle() -> void:
 
 func _apply_state() -> void:
 	content_root.visible = _expanded
-	toggle_button.text = "Debug -" if _expanded else "Debug +"
+	toggle_button.text = "调试 -" if _expanded else "调试 +"
 	custom_minimum_size = Vector2(610, 350) if _expanded else Vector2(120, 34)
 	size = custom_minimum_size

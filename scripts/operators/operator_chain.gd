@@ -1,5 +1,10 @@
 extends RefCounted
 class_name OperatorChain
+const OperatorDefinition = preload("res://scripts/operators/operator_definition.gd")
+const OperatorFactory = preload("res://scripts/operators/operator_factory.gd")
+const RuntimeOperator = preload("res://scripts/operators/runtime_operator.gd")
+const ShotContext = preload("res://scripts/operators/shot_context.gd")
+const HitContext = preload("res://scripts/operators/hit_context.gd")
 
 var _operators: Array[RuntimeOperator] = []
 var _definitions: Array[OperatorDefinition] = []
@@ -12,14 +17,19 @@ func rebuild(definitions: Array[OperatorDefinition]) -> void:
 		_operators.append(OperatorFactory.create(definition))
 
 
-func on_before_fire(context: ShotContext) -> void:
+func on_fire(context: ShotContext) -> void:
 	for operator in _operators:
-		operator.on_before_fire(context)
+		operator.on_fire(context)
 
 
 func on_hit(context: HitContext) -> void:
 	for operator in _operators:
 		operator.on_hit(context)
+
+
+func on_kill(context: HitContext) -> void:
+	for operator in _operators:
+		operator.on_kill(context)
 
 
 func describe_order() -> String:

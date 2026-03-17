@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1")
-id = "scatter"
-display_name = "散射"
-description = "OnFire：散布角固定为 8°"
-cost = 14
+id = "burn"
+display_name = "灼烧 +1"
+description = "OnHit：灼烧层数 +1"
+cost = 20
 free_copies = 1
-kind = 2
+kind = 11
 int_value = 1
-float_value = 8.0
+float_value = 1.0

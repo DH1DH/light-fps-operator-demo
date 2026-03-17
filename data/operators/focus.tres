@@ -5,10 +5,10 @@
 [resource]
 script = ExtResource("1")
 id = "focus"
-display_name = "Focus"
-description = "Reduce spread before firing."
-cost = 15
+display_name = "集中"
+description = "OnFire：散布角 ×0.2"
+cost = 16
 free_copies = 1
 kind = 3
 int_value = 1
-float_value = 1.0
+float_value = 0.2

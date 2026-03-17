@@ -15,6 +15,8 @@ func _ready() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if GameState.operator_menu_open:
+		return
 	if event.is_action_pressed("toggle_cursor"):
 		_set_cursor_captured(Input.mouse_mode != Input.MOUSE_MODE_CAPTURED)
 		return
@@ -27,6 +29,16 @@ func _input(event: InputEvent) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if GameState.operator_menu_open:
+		_look_input = Vector2.ZERO
+		velocity.x = move_toward(velocity.x, 0.0, move_speed * delta * 10.0)
+		velocity.z = move_toward(velocity.z, 0.0, move_speed * delta * 10.0)
+		if not is_on_floor():
+			velocity.y -= gravity_strength * delta
+		else:
+			velocity.y = -0.1
+		move_and_slide()
+		return
 	_apply_look()
 	var input_vector: Vector2 = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var direction: Vector3 = (transform.basis * Vector3(input_vector.x, 0.0, input_vector.y)).normalized()

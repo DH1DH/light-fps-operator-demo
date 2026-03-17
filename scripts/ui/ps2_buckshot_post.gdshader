@@ -8,6 +8,12 @@ uniform float scanline_strength = 0.01;
 uniform float vignette_strength = 0.18;
 uniform float black_floor = 0.92;
 uniform vec3 tint = vec3(0.96, 0.92, 0.78);
+uniform float highlight_protect_threshold = 0.75;
+uniform float highlight_protect_strength = 0.75;
+uniform float fx_protect_strength = 0.92;
+uniform float fx_protect_saturation_threshold = 0.22;
+uniform float fx_protect_green_bias = 0.08;
+uniform float fx_protect_purple_bias = 0.08;
 
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -34,5 +40,22 @@ void fragment() {
 	color = max(color, vec3(0.0));
 	color = pow(color, vec3(black_floor));
 
-	COLOR = vec4(color, src.a);
+	// Preserve bright highlights (e.g., muzzle flash / tracers / impacts) from heavy post effects.
+	float luma = dot(src.rgb, vec3(0.2126, 0.7152, 0.0722));
+	float protect = smoothstep(highlight_protect_threshold, 1.0, luma) * highlight_protect_strength;
+
+	// Preserve buff/debuff VFX colors (green/purple emissive particles) from heavy post distortion.
+	float cmax = max(src.r, max(src.g, src.b));
+	float cmin = min(src.r, min(src.g, src.b));
+	float sat = cmax - cmin;
+	float sat_mask = smoothstep(fx_protect_saturation_threshold, 1.0, sat);
+
+	float green_mask = smoothstep(fx_protect_green_bias, 0.55, src.g - max(src.r, src.b));
+	float purple_mask = smoothstep(fx_protect_purple_bias, 0.55, (src.r + src.b) * 0.5 - src.g);
+	float fx_mask = sat_mask * max(green_mask, purple_mask) * fx_protect_strength;
+
+	float total_protect = clamp(max(protect, fx_mask), 0.0, 1.0);
+	vec3 out_rgb = mix(color, src.rgb, total_protect);
+
+	COLOR = vec4(out_rgb, src.a);
 }

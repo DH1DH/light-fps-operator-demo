@@ -2,6 +2,8 @@ extends RefCounted
 class_name OperatorFactory
 
 const RuntimeOperators = preload("res://scripts/operators/runtime_operators.gd")
+const OperatorDefinition = preload("res://scripts/operators/operator_definition.gd")
+const RuntimeOperator = preload("res://scripts/operators/runtime_operator.gd")
 
 static func create(definition: OperatorDefinition) -> RuntimeOperator:
 	if definition == null:
@@ -13,13 +15,35 @@ static func create(definition: OperatorDefinition) -> RuntimeOperator:
 		OperatorDefinition.OperatorKind.ADD_ONE:
 			return RuntimeOperators.AddOneOperator.new(_int_default(definition.int_value, 1))
 		OperatorDefinition.OperatorKind.SCATTER:
-			return RuntimeOperators.ScatterOperator.new(_float_default(definition.float_value, 2.0))
+			return RuntimeOperators.ScatterOperator.new(_float_default(definition.float_value, 8.0))
 		OperatorDefinition.OperatorKind.FOCUS:
-			return RuntimeOperators.FocusOperator.new(_float_default(definition.float_value, 1.0))
-		OperatorDefinition.OperatorKind.MARK_ON_HIT:
-			return RuntimeOperators.MarkOnHitOperator.new(_int_default(definition.int_value, 1))
+			return RuntimeOperators.FocusOperator.new(_float_default(definition.float_value, 0.2))
+		OperatorDefinition.OperatorKind.MARK:
+			return RuntimeOperators.MarkOperator.new(_int_default(definition.int_value, 1))
+		OperatorDefinition.OperatorKind.MARK_AMPLIFIER:
+			return RuntimeOperators.MarkAmplifierOperator.new(_int_default(definition.int_value, 1))
 		OperatorDefinition.OperatorKind.EXECUTE:
-			return RuntimeOperators.ExecuteOperator.new(_float_default(definition.float_value, 3.0))
+			return RuntimeOperators.ExecuteOperator.new(_float_default(definition.float_value, 12.0))
+		OperatorDefinition.OperatorKind.CONVERGE:
+			return RuntimeOperators.ConvergeOperator.new(_float_default(definition.float_value, 8.0))
+		OperatorDefinition.OperatorKind.SEED:
+			return RuntimeOperators.SeedOperator.new(_int_default(definition.int_value, 1))
+		OperatorDefinition.OperatorKind.SEED_SPREAD:
+			return RuntimeOperators.SeedSpreadOperator.new(_float_default(definition.float_value, 5.0), _int_default(definition.int_value, 1))
+		OperatorDefinition.OperatorKind.SPAWN:
+			return RuntimeOperators.SpawnOperator.new(_int_default(definition.int_value, 3), _float_default(definition.float_value, 10.0))
+		OperatorDefinition.OperatorKind.BURN:
+			return RuntimeOperators.BurnOperator.new(_int_default(definition.int_value, 1))
+		OperatorDefinition.OperatorKind.FREEZE:
+			return RuntimeOperators.FreezeOperator.new(_int_default(definition.int_value, 1))
+		OperatorDefinition.OperatorKind.REACTOR:
+			return RuntimeOperators.ReactorOperator.new(_float_default(definition.float_value, 16.0), _int_default(definition.int_value, 1))
+		OperatorDefinition.OperatorKind.DROP_COIN:
+			return RuntimeOperators.DropCoinOperator.new(_float_default(definition.float_value, 0.15), _int_default(definition.int_value, 1))
+		OperatorDefinition.OperatorKind.GREED:
+			return RuntimeOperators.GreedOperator.new(_int_default(definition.int_value, 1))
+		OperatorDefinition.OperatorKind.CASH_OUT:
+			return RuntimeOperators.CashOutOperator.new(_int_default(definition.int_value, 2))
 		_:
 			return RuntimeOperator.new()
 

@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1")
-id = "scatter"
-display_name = "散射"
-description = "OnFire：散布角固定为 8°"
-cost = 14
+id = "cash_out"
+display_name = "兑现"
+description = "OnKill：金币 += 贪婪层数×k，并清空贪婪"
+cost = 26
 free_copies = 1
-kind = 2
-int_value = 1
-float_value = 8.0
+kind = 16
+int_value = 2
+float_value = 1.0

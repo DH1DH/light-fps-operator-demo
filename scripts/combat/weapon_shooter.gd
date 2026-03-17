@@ -1,5 +1,12 @@
 extends Node3D
 class_name WeaponShooter
+const OperatorDefinition = preload("res://scripts/operators/operator_definition.gd")
+const ShotContext = preload("res://scripts/operators/shot_context.gd")
+const HitContext = preload("res://scripts/operators/hit_context.gd")
+const OperatorChain = preload("res://scripts/operators/operator_chain.gd")
+const StatusController = preload("res://scripts/combat/status_controller.gd")
+const TargetDummy = preload("res://scripts/combat/target_dummy.gd")
+const SeedlingSummon = preload("res://scripts/combat/seedling_summon.gd")
 
 @export var base_damage: float = 10.0
 @export var base_pellet_count: int = 1
@@ -31,12 +38,16 @@ func _exit_tree() -> void:
 
 
 func _process(_delta: float) -> void:
+	if GameState.operator_menu_open:
+		return
 	if (Input.is_action_pressed("shoot") or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)) and Time.get_ticks_msec() / 1000.0 >= _next_fire_time:
 		DebugLog.add_entry("Fire requested from _process")
 		fire()
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if GameState.operator_menu_open:
+		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		if Time.get_ticks_msec() / 1000.0 >= _next_fire_time:
 			DebugLog.add_entry("Fire requested from _unhandled_input")
@@ -48,6 +59,8 @@ func current_chain_text() -> String:
 
 
 func fire() -> void:
+	if GameState.operator_menu_open:
+		return
 	if shoot_camera == null:
 		DebugLog.add_entry("Fire aborted: shoot_camera is null")
 		return
@@ -57,7 +70,7 @@ func fire() -> void:
 	shot.pellet_count = max(1, base_pellet_count)
 	shot.spread_angle = maxf(0.0, base_spread)
 
-	_chain.on_before_fire(shot)
+	_chain.on_fire(shot)
 	shot.pellet_count = max(1, shot.pellet_count)
 	shot.spread_angle = maxf(0.0, shot.spread_angle)
 	last_predicted_shot = shot
@@ -65,6 +78,7 @@ func fire() -> void:
 
 	var space_state: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
 	var owner_body: Node = get_parent()
+	var all_statuses: Array[StatusController] = _get_all_statuses()
 	for _pellet_index in range(shot.pellet_count):
 		var ray_start: Vector3 = shoot_camera.global_position
 		var direction: Vector3 = _get_spread_direction(-shoot_camera.global_basis.z, shot.spread_angle)
@@ -83,8 +97,19 @@ func fire() -> void:
 					hit_context.damage = shot.damage
 					hit_context.target_status = target
 					hit_context.hit_point = end
+					hit_context.target_world_position = _get_status_world_position(target)
+					hit_context.shot_pellet_count = shot.pellet_count
+					hit_context.all_statuses = all_statuses
+					hit_context.effect_tags.assign(shot.effect_tags)
+					var was_alive: bool = not target.is_dead()
 					_chain.on_hit(hit_context)
 					target.apply_damage(hit_context.damage)
+					if was_alive and target.is_dead():
+						_chain.on_kill(hit_context)
+					_apply_context_side_effects(hit_context)
+					var target_dummy: TargetDummy = _resolve_target_dummy(collider)
+					if target_dummy != null:
+						target_dummy.apply_operator_effects(hit_context.effect_tags)
 					DebugLog.add_entry("Damage applied: hp=%.2f marks=%d" % [target.current_hp, target.mark_stacks])
 				else:
 					DebugLog.add_entry("Ray hit node but no StatusController resolved")
@@ -105,6 +130,17 @@ func _resolve_status(node: Node) -> StatusController:
 	var parent: Node = node.get_parent()
 	if parent != null and parent.has_node("StatusController"):
 		return parent.get_node("StatusController") as StatusController
+	return null
+
+
+func _resolve_target_dummy(node: Node) -> TargetDummy:
+	if node is TargetDummy:
+		return node
+	var parent: Node = node.get_parent()
+	while parent != null:
+		if parent is TargetDummy:
+			return parent
+		parent = parent.get_parent()
 	return null
 
 
@@ -190,3 +226,40 @@ func _rebuild_chain() -> void:
 	definitions.assign(GameState.loadout)
 	_chain.rebuild(definitions)
 	DebugLog.add_entry("Chain rebuilt: %s" % _chain.describe_order())
+
+
+func _get_all_statuses() -> Array[StatusController]:
+	var out: Array[StatusController] = []
+	for node in get_tree().get_nodes_in_group("target_dummy"):
+		if node is TargetDummy:
+			out.append(node.status)
+	return out
+
+
+func _get_status_world_position(status: StatusController) -> Vector3:
+	if status == null:
+		return Vector3.ZERO
+	var owner_node := status.get_parent()
+	if owner_node is Node3D:
+		return owner_node.global_position
+	return Vector3.ZERO
+
+
+func _apply_context_side_effects(context: HitContext) -> void:
+	if context == null:
+		return
+	if context.pending_coin_gain > 0:
+		GameState.add_gold(context.pending_coin_gain)
+		DebugLog.add_entry("Coin gain: +%d" % context.pending_coin_gain)
+	if context.pending_spawn_count > 0:
+		var spawn_power: float = context.pending_spawn_power / float(max(1, context.pending_spawn_count))
+		for _index in range(context.pending_spawn_count):
+			_spawn_seedling(context.target_world_position + Vector3(randf_range(-0.8, 0.8), 0.9, randf_range(-0.8, 0.8)), spawn_power)
+		DebugLog.add_entry("Spawn trigger: count=%d" % context.pending_spawn_count)
+
+
+func _spawn_seedling(position: Vector3, power: float) -> void:
+	var summon := SeedlingSummon.new()
+	get_tree().current_scene.add_child(summon)
+	summon.global_position = position
+	summon.configure(power)

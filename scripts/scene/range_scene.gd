@@ -1,7 +1,13 @@
 extends Node3D
+const TargetDummy = preload("res://scripts/combat/target_dummy.gd")
+const HubUi = preload("res://scripts/ui/hub_ui.gd")
+
+@onready var operator_overlay: Control = %OperatorOverlay
 
 func _ready() -> void:
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	if operator_overlay is HubUi:
+		(operator_overlay as HubUi).overlay_close_requested.connect(func() -> void: _set_operator_menu(false))
+	_set_operator_menu(false)
 	DebugLog.add_entry("RangeScene ready")
 
 
@@ -10,6 +16,11 @@ func _process(_delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("toggle_operator_menu") and not event.is_echo():
+		_set_operator_menu(not GameState.operator_menu_open)
+		return
+	if GameState.operator_menu_open:
+		return
 	if event.is_action_pressed("reset_targets") and not event.is_echo():
 		_reset_targets("action")
 		return
@@ -38,3 +49,13 @@ func _reset_targets_recursive(node: Node, seen: Dictionary, count: int) -> int:
 	for child in node.get_children():
 		count = _reset_targets_recursive(child, seen, count)
 	return count
+
+
+func _set_operator_menu(open: bool) -> void:
+	GameState.set_operator_menu_open(open)
+	if operator_overlay != null:
+		operator_overlay.visible = open
+		if open and operator_overlay.has_method("refresh"):
+			operator_overlay.call("refresh")
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if open else Input.MOUSE_MODE_CAPTURED
+	DebugLog.add_entry("Operator menu: %s" % ("open" if open else "closed"))

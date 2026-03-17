@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1")
-id = "scatter"
-display_name = "散射"
-description = "OnFire：散布角固定为 8°"
-cost = 14
+id = "converge"
+display_name = "收束"
+description = "OnHit：额外伤害按 1/弹体数 计算"
+cost = 22
 free_copies = 1
-kind = 2
+kind = 7
 int_value = 1
 float_value = 8.0

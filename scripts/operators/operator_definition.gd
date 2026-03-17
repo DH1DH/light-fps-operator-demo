@@ -6,8 +6,19 @@ enum OperatorKind {
 	ADD_ONE,
 	SCATTER,
 	FOCUS,
-	MARK_ON_HIT,
+	MARK,
+	MARK_AMPLIFIER,
 	EXECUTE,
+	CONVERGE,
+	SEED,
+	SEED_SPREAD,
+	SPAWN,
+	BURN,
+	FREEZE,
+	REACTOR,
+	DROP_COIN,
+	GREED,
+	CASH_OUT,
 }
 
 @export var id := ""

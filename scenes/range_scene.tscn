@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/scene/range_scene.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/ui/debug_panel.gd" id="5"]
 [ext_resource type="Shader" path="res://scripts/ui/ps2_buckshot_post.gdshader" id="6"]
 [ext_resource type="Script" path="res://scripts/ui/target_overlay_layer.gd" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/hub_scene.tscn" id="8"]
 
 [sub_resource type="Environment" id="1"]
 background_mode = 1
@@ -41,7 +42,7 @@ shape = SubResource("3")
 mesh = SubResource("2")
 
 [node name="Player" parent="." instance=ExtResource("2")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, -10)
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 1.2, 6)
 
 [node name="TargetA" parent="." instance=ExtResource("3")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 1, 12)
@@ -85,7 +86,7 @@ offset_top = 12.0
 offset_right = -12.0
 offset_bottom = 36.0
 horizontal_alignment = 2
-text = "FPS: -- | Frame: -- ms"
+text = "帧率: -- | 帧耗时: -- ms"
 
 [node name="Panel" type="PanelContainer" parent="CanvasLayer/HUD"]
 layout_mode = 1
@@ -104,16 +105,16 @@ theme_override_constants/separation = 4
 [node name="ChainLabel" type="Label" parent="CanvasLayer/HUD/Panel/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Chain: (empty)"
+text = "算子链: (空)"
 
 [node name="ShotLabel" type="Label" parent="CanvasLayer/HUD/Panel/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Predicted Shot"
+text = "预测射击"
 
 [node name="ControlsLabel" type="Label" parent="CanvasLayer/HUD/Panel/VBox"]
 layout_mode = 2
-text = "LMB Shoot | WASD Move | Mouse Look | R Reset Targets | Esc Toggle Cursor"
+text = "左键射击 | WASD移动 | 鼠标视角 | R重置目标 | Esc切换鼠标"
 
 [node name="Buttons" type="HBoxContainer" parent="CanvasLayer/HUD/Panel/VBox"]
 layout_mode = 2
@@ -121,7 +122,7 @@ layout_mode = 2
 [node name="ReturnHubButton" type="Button" parent="CanvasLayer/HUD/Panel/VBox/Buttons"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Return Hub"
+text = "返回中枢"
 
 [node name="Crosshair" type="ColorRect" parent="CanvasLayer/HUD"]
 layout_mode = 1
@@ -167,7 +168,7 @@ layout_mode = 2
 [node name="DebugToggleButton" type="Button" parent="CanvasLayer/HUD/DebugPanel/DebugMargin/DebugVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Debug +"
+text = "调试 +"
 
 [node name="DebugContent" type="VBoxContainer" parent="CanvasLayer/HUD/DebugPanel/DebugMargin/DebugVBox"]
 unique_name_in_owner = true
@@ -180,3 +181,8 @@ layout_mode = 2
 custom_minimum_size = Vector2(580, 300)
 bbcode_enabled = false
 scroll_following = true
+
+[node name="OperatorOverlay" parent="CanvasLayer/HUD" instance=ExtResource("8")]
+unique_name_in_owner = true
+visible = false
+overlay_mode = true

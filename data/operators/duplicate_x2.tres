@@ -5,9 +5,9 @@
 [resource]
 script = ExtResource("1")
 id = "duplicate_x2"
-display_name = "Duplicate X2"
-description = "Double pellet count."
-cost = 35
+display_name = "×2（倍增）"
+description = "OnFire：弹体数 ×2"
+cost = 28
 free_copies = 1
 kind = 0
 int_value = 2
