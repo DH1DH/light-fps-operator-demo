@@ -17,8 +17,10 @@ const SeedlingSummon = preload("res://scripts/combat/seedling_summon.gd")
 @export var tracer_width: float = 0.08
 @export var impact_lifetime: float = 0.25
 @export var tracer_muzzle_offset: Vector3 = Vector3(0.28, -0.18, -0.35)
-@export var tracer_segments: int = 8
+@export var tracer_segments: int = 6
 @export var tracer_segment_gap: float = 0.012
+@export var max_total_tracer_segments_per_shot: int = 20
+@export var verbose_fire_logs: bool = false
 
 @onready var shoot_camera: Camera3D = $"../CameraPivot/Camera3D"
 
@@ -41,17 +43,7 @@ func _process(_delta: float) -> void:
 	if GameState.operator_menu_open:
 		return
 	if (Input.is_action_pressed("shoot") or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)) and Time.get_ticks_msec() / 1000.0 >= _next_fire_time:
-		DebugLog.add_entry("Fire requested from _process")
 		fire()
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if GameState.operator_menu_open:
-		return
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		if Time.get_ticks_msec() / 1000.0 >= _next_fire_time:
-			DebugLog.add_entry("Fire requested from _unhandled_input")
-			fire()
 
 
 func current_chain_text() -> String:
@@ -74,7 +66,7 @@ func fire() -> void:
 	shot.pellet_count = max(1, shot.pellet_count)
 	shot.spread_angle = maxf(0.0, shot.spread_angle)
 	last_predicted_shot = shot
-	DebugLog.add_entry("Fire executing: pellets=%d spread=%.2f damage=%.2f chain=%s" % [shot.pellet_count, shot.spread_angle, shot.damage, current_chain_text()])
+	_log_verbose("Fire executing: pellets=%d spread=%.2f damage=%.2f chain=%s" % [shot.pellet_count, shot.spread_angle, shot.damage, current_chain_text()])
 
 	var space_state: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
 	var owner_body: Node = get_parent()
@@ -89,7 +81,7 @@ func fire() -> void:
 		if not result.is_empty():
 			end = result.get("position", end)
 			var collider: Variant = result.get("collider")
-			DebugLog.add_entry("Ray hit: collider=%s point=%s" % [str(collider), str(end)])
+			_log_verbose("Ray hit: collider=%s point=%s" % [str(collider), str(end)])
 			if collider is Node:
 				var target: StatusController = _resolve_status(collider)
 				if target != null:
@@ -110,13 +102,13 @@ func fire() -> void:
 					var target_dummy: TargetDummy = _resolve_target_dummy(collider)
 					if target_dummy != null:
 						target_dummy.apply_operator_effects(hit_context.effect_tags)
-					DebugLog.add_entry("Damage applied: hp=%.2f marks=%d" % [target.current_hp, target.mark_stacks])
+					_log_verbose("Damage applied: hp=%.2f marks=%d" % [target.current_hp, target.mark_stacks])
 				else:
-					DebugLog.add_entry("Ray hit node but no StatusController resolved")
+					_log_verbose("Ray hit node but no StatusController resolved")
 		else:
-			DebugLog.add_entry("Ray missed")
+			_log_verbose("Ray missed")
 		var tracer_start: Vector3 = _get_tracer_start()
-		_spawn_tracer(tracer_start, end)
+		_spawn_tracer(tracer_start, end, shot.pellet_count)
 		_spawn_impact_marker(end)
 
 
@@ -157,10 +149,18 @@ func _get_tracer_start() -> Vector3:
 	return shoot_camera.to_global(tracer_muzzle_offset)
 
 
-func _spawn_tracer(start: Vector3, end: Vector3) -> void:
+func _spawn_tracer(start: Vector3, end: Vector3, pellet_count: int) -> void:
+	var scene: Node = get_tree().current_scene
+	if scene == null:
+		return
 	var distance: float = start.distance_to(end)
+	if distance <= 0.001:
+		return
 	var direction: Vector3 = (end - start).normalized()
-	var segment_count: int = max(2, tracer_segments)
+	var base_segments: int = clampi(tracer_segments, 2, 10)
+	var per_shot_cap: int = maxi(2, int(floor(float(max(2, max_total_tracer_segments_per_shot)) / float(max(1, pellet_count)))))
+	var distance_segments: int = clampi(int(ceil(distance / 9.0)), 2, base_segments)
+	var segment_count: int = mini(base_segments, mini(per_shot_cap, distance_segments))
 	var segment_length: float = maxf(0.08, distance / float(segment_count))
 	for index in range(segment_count):
 		var segment := MeshInstance3D.new()
@@ -168,7 +168,7 @@ func _spawn_tracer(start: Vector3, end: Vector3) -> void:
 		mesh.top_radius = tracer_width * 0.5
 		mesh.bottom_radius = tracer_width * 0.5
 		mesh.height = segment_length
-		mesh.radial_segments = 10
+		mesh.radial_segments = 6
 		mesh.rings = 1
 		segment.mesh = mesh
 
@@ -183,7 +183,7 @@ func _spawn_tracer(start: Vector3, end: Vector3) -> void:
 		material.cull_mode = BaseMaterial3D.CULL_DISABLED
 		segment.set_surface_override_material(0, material)
 
-		get_tree().current_scene.add_child(segment)
+		scene.add_child(segment)
 		var center_ratio: float = (float(index) + 0.5) / float(segment_count)
 		var center: Vector3 = start.lerp(end, center_ratio)
 		segment.global_position = center
@@ -197,6 +197,9 @@ func _spawn_tracer(start: Vector3, end: Vector3) -> void:
 
 
 func _spawn_impact_marker(position: Vector3) -> void:
+	var scene: Node = get_tree().current_scene
+	if scene == null:
+		return
 	var marker := MeshInstance3D.new()
 	var mesh := SphereMesh.new()
 	mesh.radius = 0.12
@@ -212,7 +215,7 @@ func _spawn_impact_marker(position: Vector3) -> void:
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	marker.set_surface_override_material(0, material)
 
-	get_tree().current_scene.add_child(marker)
+	scene.add_child(marker)
 	marker.global_position = position
 
 	var tween := create_tween()
@@ -259,7 +262,15 @@ func _apply_context_side_effects(context: HitContext) -> void:
 
 
 func _spawn_seedling(position: Vector3, power: float) -> void:
+	var scene: Node = get_tree().current_scene
+	if scene == null:
+		return
 	var summon := SeedlingSummon.new()
-	get_tree().current_scene.add_child(summon)
+	scene.add_child(summon)
 	summon.global_position = position
 	summon.configure(power)
+
+
+func _log_verbose(message: String) -> void:
+	if verbose_fire_logs:
+		DebugLog.add_entry(message)

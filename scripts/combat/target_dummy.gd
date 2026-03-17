@@ -7,6 +7,7 @@ const StatusController = preload("res://scripts/combat/status_controller.gd")
 @export var auto_reset_delay: float = 3.0
 @export var dps_window: float = 1.0
 @export var execute_ready_marks: int = 4
+@export var max_effect_bursts: int = 12
 
 @onready var status: StatusController = $StatusController
 @onready var mesh_instance: MeshInstance3D = $Visual
@@ -18,6 +19,7 @@ var _visual_material: ShaderMaterial
 var _flash_color: Color = Color(1.0, 1.0, 1.0, 1.0)
 var _flash_strength: float = 0.0
 var _last_effect_time: Dictionary = {}
+var _active_effect_bursts: int = 0
 
 func _ready() -> void:
 	add_to_group("target_dummy")
@@ -268,6 +270,8 @@ func _get_effect_color(tag: String) -> Color:
 
 
 func _spawn_effect_burst(tag: String) -> void:
+	if _active_effect_bursts >= max_effect_bursts:
+		return
 	var preset: Dictionary = _get_effect_preset(tag)
 	var burst := GPUParticles3D.new()
 	burst.one_shot = true
@@ -280,8 +284,13 @@ func _spawn_effect_burst(tag: String) -> void:
 	burst.process_material = _create_effect_material(preset)
 	add_child(burst)
 	burst.emitting = true
+	_active_effect_bursts += 1
 	var timer := get_tree().create_timer(burst.lifetime + 0.25)
-	timer.timeout.connect(burst.queue_free)
+	timer.timeout.connect(func() -> void:
+		if is_instance_valid(burst):
+			burst.queue_free()
+		_active_effect_bursts = maxi(0, _active_effect_bursts - 1)
+	)
 
 
 func _create_effect_material(preset: Dictionary) -> ParticleProcessMaterial:
