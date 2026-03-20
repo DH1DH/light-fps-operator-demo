@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="OperatorDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/operators/operator_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "chain_lightning"
+display_name = "电链"
+description = "OnHit：命中后释放黄色电链，连到附近敌人并造成衰减伤害（仅传递伤害）。"
+cost = 38
+free_copies = 1
+kind = 17
+int_value = 2
+float_value = 0.55

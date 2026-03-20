@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="OperatorDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/operators/operator_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "summon_attach"
+display_name = "召唤形态：附着"
+description = "On hit: if spawn triggered in this hit, set summoned unit to attached form. Place after Spawn."
+cost = 22
+free_copies = 1
+kind = 19
+int_value = 1
+float_value = 1.0

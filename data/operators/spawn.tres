@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="OperatorDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/operators/operator_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "spawn"
+display_name = "孵化"
+description = "On hit: when seed reaches threshold, summon and consume seed."
+cost = 30
+free_copies = 1
+kind = 10
+int_value = 3
+float_value = 10.0
