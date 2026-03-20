@@ -372,7 +372,7 @@ func _spawn_needle_trace(start_pos: Vector3, end_pos: Vector3) -> void:
 	beam.look_at(center + direction, Vector3.UP, true)
 	beam.rotate_object_local(Vector3.RIGHT, deg_to_rad(90.0))
 
-	var tween := create_tween()
+	var tween := beam.create_tween()
 	tween.parallel().tween_property(mat, "albedo_color:a", 0.0, 0.15)
 	tween.parallel().tween_property(beam, "scale", Vector3(1.0, 1.0, 0.86), 0.15)
 	tween.finished.connect(beam.queue_free)
@@ -425,7 +425,7 @@ func _spawn_hit_spark(position: Vector3) -> void:
 	ring.set_surface_override_material(0, ring_mat)
 	root.add_child(ring)
 
-	var tween := create_tween()
+	var tween := root.create_tween()
 	tween.parallel().tween_property(core, "scale", Vector3.ONE * 1.7, 0.16)
 	tween.parallel().tween_property(core_mat, "albedo_color:a", 0.0, 0.16)
 	tween.parallel().tween_property(ring, "scale", Vector3.ONE * 2.2, 0.2)
@@ -455,7 +455,7 @@ func _spawn_origin_flash(position: Vector3) -> void:
 	flash.set_surface_override_material(0, mat)
 	scene.add_child(flash)
 	flash.global_position = position
-	var tween := create_tween()
+	var tween := flash.create_tween()
 	tween.parallel().tween_property(flash, "scale", Vector3.ONE * 1.55, 0.1)
 	tween.parallel().tween_property(mat, "albedo_color:a", 0.0, 0.1)
 	tween.finished.connect(flash.queue_free)

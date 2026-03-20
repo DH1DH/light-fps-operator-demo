@@ -728,6 +728,8 @@ func _collect_special_field_lines(seed_texts: Array[String]) -> Array[String]:
 			var token: String = str(item.get("token", ""))
 			if token.is_empty() or visited_tokens.has(token):
 				continue
+			if token == "OnFire" or token == "OnHit" or token == "OnKill":
+				continue
 			if not _contains_token(text, token):
 				continue
 			visited_tokens[token] = true

@@ -95,7 +95,6 @@ func _exit_tree() -> void:
 
 
 func _process(delta: float) -> void:
-	_update_recoil(delta)
 	_update_reload(delta)
 	if GameState.operator_menu_open:
 		return
@@ -109,6 +108,10 @@ func _process(delta: float) -> void:
 	if Input.is_action_pressed("shoot_right") or Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
 		fired = _try_fire_hand(HAND_RIGHT, now) or fired
 	_auto_reload_empty_hands()
+
+
+func _physics_process(delta: float) -> void:
+	_update_recoil(delta)
 
 
 func current_chain_text() -> String:
@@ -475,7 +478,7 @@ func _spawn_tracer(start: Vector3, end: Vector3, pellet_count: int, phase: int =
 		segment.look_at(center + direction, Vector3.UP, true)
 		segment.rotate_object_local(Vector3.RIGHT, deg_to_rad(90.0))
 
-		var tween := create_tween()
+		var tween := segment.create_tween()
 		tween.tween_interval(float(index) * tracer_segment_gap)
 		tween.tween_property(material, "albedo_color:a", 0.0, tracer_lifetime)
 		tween.finished.connect(segment.queue_free)
@@ -510,7 +513,7 @@ func _spawn_impact_marker(position: Vector3, phase: int = ShotContext.ShotPhase.
 	scene.add_child(marker)
 	marker.global_position = position
 
-	var tween := create_tween()
+	var tween := marker.create_tween()
 	tween.parallel().tween_property(marker, "scale", Vector3.ONE * impact_scale, impact_lifetime)
 	tween.parallel().tween_property(material, "albedo_color:a", 0.0, impact_lifetime)
 	tween.finished.connect(marker.queue_free)
@@ -624,7 +627,7 @@ func _spawn_chain_lightning_arc(from_world: Vector3, to_world: Vector3, jump_ind
 			point += jitter
 		_spawn_chain_segment(root, prev, point, jump_index)
 		prev = point
-	var tween := create_tween()
+	var tween := root.create_tween()
 	tween.tween_interval(0.12)
 	tween.finished.connect(root.queue_free)
 
@@ -657,7 +660,7 @@ func _spawn_chain_segment(parent: Node3D, from_world: Vector3, to_world: Vector3
 	segment.global_position = center
 	segment.look_at(center + forward, Vector3.UP, true)
 	segment.rotate_object_local(Vector3.RIGHT, deg_to_rad(90.0))
-	var tween := create_tween()
+	var tween := segment.create_tween()
 	tween.parallel().tween_property(mat, "albedo_color:a", 0.0, 0.1)
 	tween.parallel().tween_property(segment, "scale", Vector3(1.0, 1.0, 0.88), 0.1)
 	tween.finished.connect(segment.queue_free)
