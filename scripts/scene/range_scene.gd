@@ -1,10 +1,12 @@
 extends Node3D
-const TargetDummy = preload("res://scripts/combat/target_dummy.gd")
+const CombatTargeting = preload("res://scripts/combat/combat_targeting.gd")
 const SeedlingSummon = preload("res://scripts/combat/seedling_summon.gd")
 const HubUi = preload("res://scripts/ui/hub_ui.gd")
+const WaveDirector = preload("res://scripts/scene/wave_director.gd")
 const FX_GROUP := "runtime_vfx"
 
 @onready var operator_overlay: Control = %OperatorOverlay
+@onready var wave_director: Node = $WaveDirector
 
 func _ready() -> void:
 	if operator_overlay is HubUi:
@@ -36,26 +38,15 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _reset_targets(source: String) -> void:
 	var count: int = 0
-	var seen: Dictionary = {}
-	for target in get_tree().get_nodes_in_group("target_dummy"):
-		if target is TargetDummy:
-			target.reset_dummy()
-			seen[target] = true
+	if wave_director is WaveDirector:
+		(wave_director as WaveDirector).reset_run()
+	for target in get_tree().get_nodes_in_group(CombatTargeting.COMBAT_TARGET_GROUP):
+		if target != null and is_instance_valid(target) and target.has_method("reset_dummy"):
+			target.call("reset_dummy")
 			count += 1
-	count = _reset_targets_recursive(get_tree().current_scene, seen, count)
 	var summon_cleared: int = _clear_seedling_summons()
 	var fx_cleared: int = _clear_runtime_fx()
 	DebugLog.add_entry("Targets reset from %s; count=%d summons_cleared=%d fx_cleared=%d" % [source, count, summon_cleared, fx_cleared])
-
-
-func _reset_targets_recursive(node: Node, seen: Dictionary, count: int) -> int:
-	if node is TargetDummy and not seen.has(node):
-		node.reset_dummy()
-		seen[node] = true
-		count += 1
-	for child in node.get_children():
-		count = _reset_targets_recursive(child, seen, count)
-	return count
 
 
 func _set_operator_menu(open: bool) -> void:

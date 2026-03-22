@@ -8,7 +8,7 @@ const OperatorDefinition = preload("res://scripts/operators/operator_definition.
 const HAND_LEFT: String = "left"
 const HAND_RIGHT: String = "right"
 
-@export var starting_gold: int = 999999
+@export var starting_gold: int = 24
 
 var gold: int = 0
 var all_definitions: Array[OperatorDefinition] = []

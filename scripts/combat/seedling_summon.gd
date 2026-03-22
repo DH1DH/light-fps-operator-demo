@@ -2,7 +2,7 @@ extends Node3D
 class_name SeedlingSummon
 
 const StatusController = preload("res://scripts/combat/status_controller.gd")
-const TargetDummy = preload("res://scripts/combat/target_dummy.gd")
+const CombatTargeting = preload("res://scripts/combat/combat_targeting.gd")
 const FX_GROUP := "runtime_vfx"
 
 enum SummonMode {
@@ -200,9 +200,8 @@ func _fire_needle(target: StatusController) -> void:
 	target.apply_damage(shot_damage)
 	var tags: Array[String] = _apply_support_status(target)
 	tags.append("summon_hit")
-	var target_dummy: TargetDummy = _resolve_target_dummy(target)
-	if target_dummy != null and not tags.is_empty():
-		target_dummy.apply_operator_effects(tags)
+	if not tags.is_empty():
+		CombatTargeting.apply_operator_effects_to_status(target, tags)
 	var origin: Vector3 = global_position + Vector3(0.0, 0.18, 0.0)
 	_spawn_origin_flash(origin)
 	_spawn_needle_trace(origin, hit_pos)
@@ -242,10 +241,8 @@ func _apply_support_status(target: StatusController) -> Array[String]:
 func _find_target() -> StatusController:
 	var best: StatusController = null
 	var best_dist: float = acquire_range
-	for node in get_tree().get_nodes_in_group("target_dummy"):
-		if not (node is TargetDummy):
-			continue
-		var status: StatusController = (node as TargetDummy).status
+	for node in get_tree().get_nodes_in_group(CombatTargeting.COMBAT_TARGET_GROUP):
+		var status: StatusController = CombatTargeting.resolve_status_from_node(node)
 		if status == null or status.is_dead():
 			continue
 		var dist: float = _distance_to_status(status)
@@ -266,15 +263,6 @@ func _status_world_position(status: StatusController) -> Vector3:
 	if owner_node is Node3D:
 		return (owner_node as Node3D).global_position
 	return global_position
-
-
-func _resolve_target_dummy(status: StatusController) -> TargetDummy:
-	if status == null:
-		return null
-	var owner_node: Node = status.get_parent()
-	if owner_node is TargetDummy:
-		return owner_node as TargetDummy
-	return null
 
 
 func _build_visual() -> void:

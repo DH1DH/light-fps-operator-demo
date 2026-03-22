@@ -1,1 +1,1 @@
-{"gold":999853,"inventory":{"add_one":1,"burn":1,"cash_out":1,"chain_lightning":2,"converge":1,"drop_coin":1,"duplicate_x2":1,"execute":1,"focus":1,"freeze":1,"greed":1,"mark":1,"mark_amplifier":1,"reactor":1,"scatter":1,"seed":7,"seed_spread":1,"spawn":1,"summon_attach":1,"summon_runner":1},"loadout_left":["chain_lightning"],"loadout_right":["chain_lightning"],"version":1}
+{"version":1,"gold":24,"inventory":{},"loadout_left":["focus"],"loadout_right":["mark"]}

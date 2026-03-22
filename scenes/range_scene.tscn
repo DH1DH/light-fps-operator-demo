@@ -2,9 +2,9 @@
 
 [ext_resource type="Script" path="res://scripts/scene/range_scene.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2"]
-[ext_resource type="PackedScene" path="res://scenes/target_dummy.tscn" id="3"]
 [ext_resource type="Script" path="res://scripts/ui/range_hud.gd" id="4"]
 [ext_resource type="Script" path="res://scripts/ui/debug_panel.gd" id="5"]
+[ext_resource type="Script" path="res://scripts/scene/wave_director.gd" id="6"]
 [ext_resource type="Script" path="res://scripts/ui/target_overlay_layer.gd" id="7"]
 [ext_resource type="PackedScene" path="res://scenes/hub_scene.tscn" id="8"]
 
@@ -40,14 +40,8 @@ mesh = SubResource("2")
 [node name="Player" parent="." instance=ExtResource("2")]
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 1.2, 6)
 
-[node name="TargetA" parent="." instance=ExtResource("3")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 1, 12)
-
-[node name="TargetB" parent="." instance=ExtResource("3")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 14)
-
-[node name="TargetC" parent="." instance=ExtResource("3")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 1, 16)
+[node name="WaveDirector" type="Node" parent="."]
+script = ExtResource("6")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 

@@ -23,6 +23,7 @@ var _active_effect_bursts: int = 0
 
 func _ready() -> void:
 	add_to_group("target_dummy")
+	add_to_group("combat_target")
 	_setup_visual_material()
 	status.damaged.connect(_on_damaged)
 	status.status_reset.connect(_on_status_reset)
@@ -42,6 +43,14 @@ func _process(delta: float) -> void:
 
 func reset_dummy() -> void:
 	status.reset_status()
+
+
+func get_status_controller() -> StatusController:
+	return status
+
+
+func get_overlay_world_position() -> Vector3:
+	return global_position + Vector3(0.0, 2.35, 0.0)
 
 
 func _on_damaged(amount: float) -> void:

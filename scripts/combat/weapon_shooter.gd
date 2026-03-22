@@ -5,7 +5,7 @@ const ShotContext = preload("res://scripts/operators/shot_context.gd")
 const HitContext = preload("res://scripts/operators/hit_context.gd")
 const OperatorChain = preload("res://scripts/operators/operator_chain.gd")
 const StatusController = preload("res://scripts/combat/status_controller.gd")
-const TargetDummy = preload("res://scripts/combat/target_dummy.gd")
+const CombatTargeting = preload("res://scripts/combat/combat_targeting.gd")
 const SeedlingSummon = preload("res://scripts/combat/seedling_summon.gd")
 const RunnerSummon = preload("res://scripts/combat/runner_summon.gd")
 const FX_GROUP := "runtime_vfx"
@@ -255,9 +255,7 @@ func fire(hand: String = "") -> void:
 					if was_alive and target.is_dead():
 						chain.on_kill(hit_context)
 					_apply_context_side_effects(hit_context)
-					var target_dummy: TargetDummy = _resolve_target_dummy(collider)
-					if target_dummy != null:
-						target_dummy.apply_operator_effects(hit_context.effect_tags)
+					CombatTargeting.apply_operator_effects_to_node(collider, hit_context.effect_tags)
 					_log_verbose("Damage applied: hp=%.2f marks=%d" % [target.current_hp, target.mark_stacks])
 				else:
 					_log_verbose("Ray hit node but no StatusController resolved")
@@ -375,27 +373,7 @@ func _auto_reload_empty_hands() -> void:
 
 
 func _resolve_status(node: Node) -> StatusController:
-	if node is TargetDummy:
-		return node.status
-	if node is StatusController:
-		return node
-	if node.has_node("StatusController"):
-		return node.get_node("StatusController") as StatusController
-	var parent: Node = node.get_parent()
-	if parent != null and parent.has_node("StatusController"):
-		return parent.get_node("StatusController") as StatusController
-	return null
-
-
-func _resolve_target_dummy(node: Node) -> TargetDummy:
-	if node is TargetDummy:
-		return node
-	var parent: Node = node.get_parent()
-	while parent != null:
-		if parent is TargetDummy:
-			return parent
-		parent = parent.get_parent()
-	return null
+	return CombatTargeting.resolve_status_from_node(node)
 
 
 func _get_spread_direction(forward: Vector3, spread_angle: float) -> Vector3:
@@ -537,11 +515,7 @@ func _rebuild_chain() -> void:
 
 
 func _get_all_statuses() -> Array[StatusController]:
-	var out: Array[StatusController] = []
-	for node in get_tree().get_nodes_in_group("target_dummy"):
-		if node is TargetDummy:
-			out.append(node.status)
-	return out
+	return CombatTargeting.collect_statuses(get_tree())
 
 
 func _get_status_world_position(status: StatusController) -> Vector3:

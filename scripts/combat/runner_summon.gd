@@ -2,7 +2,7 @@ extends Node3D
 class_name RunnerSummon
 
 const StatusController = preload("res://scripts/combat/status_controller.gd")
-const TargetDummy = preload("res://scripts/combat/target_dummy.gd")
+const CombatTargeting = preload("res://scripts/combat/combat_targeting.gd")
 const FX_GROUP := "runtime_vfx"
 
 enum BrainState {
@@ -236,9 +236,7 @@ func _execute_attack(target: StatusController) -> void:
 		target.add_marks(mark_add)
 		effect_tags.append("mark")
 
-	var target_dummy: TargetDummy = _resolve_target_dummy(target)
-	if target_dummy != null:
-		target_dummy.apply_operator_effects(effect_tags)
+	CombatTargeting.apply_operator_effects_to_status(target, effect_tags)
 
 	var hit_pos: Vector3 = _status_world_position(target) + Vector3(0.0, 0.95, 0.0)
 	var attack_origin: Vector3 = global_position + Vector3(0.0, 0.26, 0.0)
@@ -250,10 +248,8 @@ func _execute_attack(target: StatusController) -> void:
 func _find_target() -> StatusController:
 	var best: StatusController = null
 	var best_dist: float = sense_range
-	for node in get_tree().get_nodes_in_group("target_dummy"):
-		if not (node is TargetDummy):
-			continue
-		var status: StatusController = (node as TargetDummy).status
+	for node in get_tree().get_nodes_in_group(CombatTargeting.COMBAT_TARGET_GROUP):
+		var status: StatusController = CombatTargeting.resolve_status_from_node(node)
 		if status == null or status.is_dead():
 			continue
 		var dist: float = _distance_to_status(status)
@@ -274,15 +270,6 @@ func _status_world_position(status: StatusController) -> Vector3:
 	if owner_node is Node3D:
 		return (owner_node as Node3D).global_position
 	return global_position
-
-
-func _resolve_target_dummy(status: StatusController) -> TargetDummy:
-	if status == null:
-		return null
-	var owner_node: Node = status.get_parent()
-	if owner_node is TargetDummy:
-		return owner_node as TargetDummy
-	return null
 
 
 func _keep_on_ground(delta: float) -> void:
@@ -322,10 +309,10 @@ func _is_walkable_ground_collider(collider: Variant) -> bool:
 	var node: Node = collider as Node
 	if node == self:
 		return false
-	if node.is_in_group("target_dummy") or node.is_in_group("seedling_summon"):
+	if node.is_in_group(CombatTargeting.COMBAT_TARGET_GROUP) or node.is_in_group("seedling_summon"):
 		return false
 	var parent: Node = node.get_parent()
-	if parent != null and (parent.is_in_group("target_dummy") or parent.is_in_group("seedling_summon")):
+	if parent != null and (parent.is_in_group(CombatTargeting.COMBAT_TARGET_GROUP) or parent.is_in_group("seedling_summon")):
 		return false
 	return true
 
