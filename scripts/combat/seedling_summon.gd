@@ -3,6 +3,7 @@ class_name SeedlingSummon
 
 const StatusController = preload("res://scripts/combat/status_controller.gd")
 const TargetDummy = preload("res://scripts/combat/target_dummy.gd")
+const FX_GROUP := "runtime_vfx"
 
 var lifetime: float = 3.0
 var move_speed: float = 5.0
@@ -116,6 +117,8 @@ func _update_visual(delta: float) -> void:
 
 func _spawn_hit_spark(position: Vector3) -> void:
 	var spark := MeshInstance3D.new()
+	spark.name = "SeedHitSpark"
+	spark.add_to_group(FX_GROUP)
 	var mesh := SphereMesh.new()
 	mesh.radius = 0.1
 	mesh.height = 0.2

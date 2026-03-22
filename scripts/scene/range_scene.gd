@@ -1,6 +1,8 @@
 extends Node3D
 const TargetDummy = preload("res://scripts/combat/target_dummy.gd")
+const SeedlingSummon = preload("res://scripts/combat/seedling_summon.gd")
 const HubUi = preload("res://scripts/ui/hub_ui.gd")
+const FX_GROUP := "runtime_vfx"
 
 @onready var operator_overlay: Control = %OperatorOverlay
 
@@ -25,7 +27,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		_reset_targets("action")
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_R or event.physical_keycode == KEY_R:
+		if event.keycode == KEY_F1 or event.physical_keycode == KEY_F1:
 			_reset_targets("raw_key")
 
 
@@ -38,7 +40,9 @@ func _reset_targets(source: String) -> void:
 			seen[target] = true
 			count += 1
 	count = _reset_targets_recursive(get_tree().current_scene, seen, count)
-	DebugLog.add_entry("Targets reset from %s; count=%d" % [source, count])
+	var summon_cleared: int = _clear_seedling_summons()
+	var fx_cleared: int = _clear_runtime_fx()
+	DebugLog.add_entry("Targets reset from %s; count=%d summons_cleared=%d fx_cleared=%d" % [source, count, summon_cleared, fx_cleared])
 
 
 func _reset_targets_recursive(node: Node, seen: Dictionary, count: int) -> int:
@@ -59,3 +63,53 @@ func _set_operator_menu(open: bool) -> void:
 			operator_overlay.call("refresh")
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if open else Input.MOUSE_MODE_CAPTURED
 	DebugLog.add_entry("Operator menu: %s" % ("open" if open else "closed"))
+
+
+func _clear_seedling_summons() -> int:
+	var cleared: int = 0
+	var seen: Dictionary = {}
+	for node in get_tree().get_nodes_in_group("seedling_summon"):
+		if node != null and is_instance_valid(node) and not seen.has(node):
+			node.queue_free()
+			seen[node] = true
+			cleared += 1
+	var scene: Node = get_tree().current_scene
+	if scene != null:
+		cleared = _clear_seedling_summons_recursive(scene, seen, cleared)
+	return cleared
+
+
+func _clear_seedling_summons_recursive(node: Node, seen: Dictionary, cleared: int) -> int:
+	if node is SeedlingSummon and not seen.has(node):
+		node.queue_free()
+		seen[node] = true
+		cleared += 1
+	for child in node.get_children():
+		cleared = _clear_seedling_summons_recursive(child, seen, cleared)
+	return cleared
+
+
+func _clear_runtime_fx() -> int:
+	var cleared: int = 0
+	var seen: Dictionary = {}
+	for node in get_tree().get_nodes_in_group(FX_GROUP):
+		if node != null and is_instance_valid(node) and not seen.has(node):
+			node.queue_free()
+			seen[node] = true
+			cleared += 1
+	var scene: Node = get_tree().current_scene
+	if scene != null:
+		cleared = _clear_runtime_fx_recursive(scene, seen, cleared)
+	return cleared
+
+
+func _clear_runtime_fx_recursive(node: Node, seen: Dictionary, cleared: int) -> int:
+	var node_name: String = node.name
+	var is_known_fx: bool = node_name.begins_with("TracerSegment") or node_name.begins_with("ImpactMarker") or node_name.begins_with("SeedHitSpark")
+	if is_known_fx and not seen.has(node):
+		node.queue_free()
+		seen[node] = true
+		cleared += 1
+	for child in node.get_children():
+		cleared = _clear_runtime_fx_recursive(child, seen, cleared)
+	return cleared

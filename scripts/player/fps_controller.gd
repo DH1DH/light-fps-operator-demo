@@ -4,6 +4,8 @@ class_name FpsController
 @export var move_speed: float = 6.0
 @export var gravity_strength: float = 20.0
 @export var mouse_sensitivity: float = 0.0025
+@export var sprint_multiplier: float = 1.2
+@export var jump_velocity: float = 6.0
 
 @onready var camera_pivot: Node3D = $CameraPivot
 
@@ -42,16 +44,22 @@ func _physics_process(delta: float) -> void:
 	_apply_look()
 	var input_vector: Vector2 = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var direction: Vector3 = (transform.basis * Vector3(input_vector.x, 0.0, input_vector.y)).normalized()
+	var current_speed: float = move_speed
+	if Input.is_action_pressed("sprint"):
+		current_speed *= sprint_multiplier
 	if direction != Vector3.ZERO:
-		velocity.x = direction.x * move_speed
-		velocity.z = direction.z * move_speed
+		velocity.x = direction.x * current_speed
+		velocity.z = direction.z * current_speed
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, move_speed * delta * 10.0)
 		velocity.z = move_toward(velocity.z, 0.0, move_speed * delta * 10.0)
 	if not is_on_floor():
 		velocity.y -= gravity_strength * delta
 	else:
-		velocity.y = -0.1
+		if Input.is_action_just_pressed("jump"):
+			velocity.y = jump_velocity
+		else:
+			velocity.y = -0.1
 	move_and_slide()
 
 

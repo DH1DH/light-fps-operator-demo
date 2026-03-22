@@ -12,7 +12,7 @@ var resolve_label: Label = null
 
 func _ready() -> void:
 	%ReturnHubButton.pressed.connect(_return_hub)
-	controls_label.text = "左键射击 | WASD移动 | 鼠标视角 | R重置目标 | Tab背包商店 | Esc切换鼠标"
+	controls_label.text = "左键射击 | R换弹 | WASD移动 | Shift冲刺 | Space跳跃 | F1重置目标 | Tab背包商店 | Esc切换鼠标"
 	_ensure_resolve_label()
 	_try_bind_shooter()
 
@@ -43,10 +43,13 @@ func _process(delta: float) -> void:
 	var spread: float = float(shot.get("spread_angle"))
 	var damage: float = float(shot.get("damage"))
 	var total_damage: float = float(pellets) * damage
+	var ammo_text: String = ""
+	if _shooter.has_method("ammo_status_text"):
+		ammo_text = str(_shooter.call("ammo_status_text"))
 
 	if resolve_label != null:
 		resolve_label.text = "单发结算  弹体:%d  单弹伤害:%.1f  理论总伤害:%.1f" % [pellets, damage, total_damage]
-	shot_label.text = "预测参数  散布:%.1f°  基础伤害:%.1f" % [spread, damage]
+	shot_label.text = "预测参数  散布:%.1f°  基础伤害:%.1f  %s" % [spread, damage, ammo_text]
 
 
 func _try_bind_shooter() -> void:

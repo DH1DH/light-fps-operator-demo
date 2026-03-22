@@ -54,6 +54,8 @@ func _on_damaged(amount: float) -> void:
 func _on_status_reset() -> void:
 	_damage_events.clear()
 	_flash_strength = 0.0
+	_last_effect_time.clear()
+	_clear_runtime_bursts()
 	_update_mark_particles()
 
 
@@ -274,6 +276,7 @@ func _spawn_effect_burst(tag: String) -> void:
 		return
 	var preset: Dictionary = _get_effect_preset(tag)
 	var burst := GPUParticles3D.new()
+	burst.name = "EffectBurst"
 	burst.one_shot = true
 	burst.explosiveness = 1.0
 	burst.amount = int(preset.get("amount", 10))
@@ -291,6 +294,15 @@ func _spawn_effect_burst(tag: String) -> void:
 			burst.queue_free()
 		_active_effect_bursts = maxi(0, _active_effect_bursts - 1)
 	)
+
+
+func _clear_runtime_bursts() -> void:
+	for child in get_children():
+		if child == _mark_particles:
+			continue
+		if child is GPUParticles3D:
+			child.queue_free()
+	_active_effect_bursts = 0
 
 
 func _create_effect_material(preset: Dictionary) -> ParticleProcessMaterial:

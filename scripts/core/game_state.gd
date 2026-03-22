@@ -145,7 +145,10 @@ func _ensure_input_map() -> void:
 	_add_key_action("move_back", KEY_S)
 	_add_key_action("move_left", KEY_A)
 	_add_key_action("move_right", KEY_D)
-	_add_key_action("reset_targets", KEY_R)
+	_add_key_action("sprint", KEY_SHIFT)
+	_add_key_action("jump", KEY_SPACE)
+	_set_single_key_action("reset_targets", KEY_F1)
+	_set_single_key_action("reload", KEY_R)
 	_add_key_action("toggle_cursor", KEY_ESCAPE)
 	_add_key_action("toggle_operator_menu", KEY_TAB)
 	if not InputMap.has_action("shoot"):
@@ -164,3 +167,15 @@ func _add_key_action(action_name: String, keycode: Key) -> void:
 	event.physical_keycode = keycode
 	if not InputMap.action_has_event(action_name, event):
 		InputMap.action_add_event(action_name, event)
+
+
+func _set_single_key_action(action_name: String, keycode: Key) -> void:
+	if not InputMap.has_action(action_name):
+		InputMap.add_action(action_name)
+	for existing in InputMap.action_get_events(action_name):
+		if existing is InputEventKey:
+			InputMap.action_erase_event(action_name, existing)
+	var event: InputEventKey = InputEventKey.new()
+	event.keycode = keycode
+	event.physical_keycode = keycode
+	InputMap.action_add_event(action_name, event)
