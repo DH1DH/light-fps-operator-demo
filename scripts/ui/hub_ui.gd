@@ -8,6 +8,7 @@ const DRAG_HOLD_SECONDS: float = 0.22
 const DRAG_FLOAT_OFFSET: Vector2 = Vector2(16.0, 14.0)
 const LOADOUT_INDEX_WIDTH: float = 38.0
 const LOADOUT_ROW_HEIGHT: float = 34.0
+const TOOLTIP_CONFIRM_FRAMES: int = 3
 
 signal overlay_close_requested
 
@@ -75,6 +76,9 @@ var _current_tooltip_operator_id: String = ""
 var _tooltip_font_regular: SystemFont
 var _tooltip_font_bold: SystemFont
 var _preserve_tooltip_during_refresh: bool = false
+var _tooltip_hover_candidate_id: String = ""
+var _tooltip_hover_frames: int = 0
+var _tooltip_absent_frames: int = 0
 
 var _save_tip: Label
 var _closing_with_save: bool = false
@@ -121,6 +125,7 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	_update_drag_state()
+	_update_tooltip_visibility_state()
 	if _tooltip_panel != null and _tooltip_panel.visible:
 		_position_tooltip(_get_ui_pointer_position())
 
@@ -886,12 +891,6 @@ func _bind_operator_hover(control: Control, definition: OperatorDefinition) -> v
 		return
 	control.set_meta("hover_bound_operator_id", definition.id)
 	control.set_meta("operator_def_id", definition.id)
-	control.mouse_entered.connect(func() -> void:
-		_show_operator_tooltip(definition, control)
-	)
-	control.mouse_exited.connect(func() -> void:
-		call_deferred("_hide_tooltip_if_needed")
-	)
 
 
 func _show_operator_tooltip(definition: OperatorDefinition, source_control: Control) -> void:
@@ -1040,9 +1039,41 @@ func _restore_tooltip_after_refresh() -> void:
 	if hovered != null:
 		var definition: OperatorDefinition = _definition_from_control(hovered)
 		if definition != null:
+			_tooltip_hover_candidate_id = definition.id
+			_tooltip_hover_frames = TOOLTIP_CONFIRM_FRAMES
+			_tooltip_absent_frames = 0
 			_show_operator_tooltip(definition, hovered)
 			return
 	_hide_tooltip_immediately()
+
+
+func _update_tooltip_visibility_state() -> void:
+	if _tooltip_panel == null:
+		return
+	if _preserve_tooltip_during_refresh:
+		_tooltip_absent_frames = 0
+		return
+	var hovered: Control = null
+	var definition: OperatorDefinition = null
+	if not _drag_active:
+		hovered = get_viewport().gui_get_hovered_control()
+		if hovered != null:
+			definition = _definition_from_control(hovered)
+	if definition != null:
+		_tooltip_absent_frames = 0
+		if definition.id == _tooltip_hover_candidate_id:
+			_tooltip_hover_frames += 1
+		else:
+			_tooltip_hover_candidate_id = definition.id
+			_tooltip_hover_frames = 1
+		if _tooltip_hover_frames >= TOOLTIP_CONFIRM_FRAMES:
+			_show_operator_tooltip(definition, hovered)
+		return
+	_tooltip_hover_candidate_id = ""
+	_tooltip_hover_frames = 0
+	_tooltip_absent_frames += 1
+	if _tooltip_panel.visible and _tooltip_absent_frames >= TOOLTIP_CONFIRM_FRAMES:
+		_hide_tooltip_immediately()
 
 
 func _position_tooltip(mouse_pos: Vector2) -> void:

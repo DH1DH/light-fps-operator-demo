@@ -22,14 +22,20 @@ var _sprint_energy_bg: ColorRect = null
 var _sprint_energy_fill: ColorRect = null
 var _gamepad_ui_cursor: Panel = null
 var _gamepad_ui_cursor_pos: Vector2 = Vector2.ZERO
+var _shared_ui_pointer_pos: Vector2 = Vector2.ZERO
+var _shared_ui_pointer_valid: bool = false
 var _last_virtual_mouse_pos: Vector2 = Vector2.ZERO
 var _last_warped_mouse_position: Vector2 = Vector2.ZERO
 var _ignore_warped_mouse_motion_until_msec: int = 0
+var _ignore_gamepad_reentry_until_msec: int = 0
+var _gamepad_ui_cursor_synced: bool = false
 var _gamepad_ui_cursor_active: bool = false
 var _gamepad_ui_dragging: bool = false
 var _ui_using_gamepad_cursor: bool = false
 const GAMEPAD_UI_CURSOR_SPEED: float = 900.0
 const GAMEPAD_UI_CURSOR_DEADZONE: float = 0.22
+const GAMEPAD_UI_MOUSE_TAKEOVER_GRACE_MSEC: int = 260
+const GAMEPAD_UI_SYNC_IGNORE_RADIUS: float = 8.0
 
 
 func _ready() -> void:
@@ -55,6 +61,9 @@ func _input(event: InputEvent) -> void:
 			return
 		if _should_ignore_warped_mouse_event(mouse_motion.position):
 			return
+		if _ui_using_gamepad_cursor and _is_near_shared_ui_pointer(mouse_motion.position):
+			return
+		_remember_ui_pointer_position(mouse_motion.position)
 		if mouse_motion.relative.length() > 0.0:
 			_set_ui_input_mode_mouse()
 	if event is InputEventMouseButton:
@@ -63,15 +72,18 @@ func _input(event: InputEvent) -> void:
 			return
 		if _should_ignore_warped_mouse_event(mouse_button.position):
 			return
+		_remember_ui_pointer_position(mouse_button.position)
 		if mouse_button.pressed:
 			_set_ui_input_mode_mouse()
 	if event is InputEventJoypadMotion:
 		var joy_motion: InputEventJoypadMotion = event
+		if Time.get_ticks_msec() < _ignore_gamepad_reentry_until_msec:
+			return
 		if absf(joy_motion.axis_value) >= GAMEPAD_UI_CURSOR_DEADZONE:
 			_set_ui_input_mode_gamepad()
 	if event is InputEventJoypadButton:
 		var joy_button: InputEventJoypadButton = event
-		if joy_button.pressed or joy_button.button_index == JOY_BUTTON_A:
+		if joy_button.pressed:
 			_set_ui_input_mode_gamepad()
 	if _ui_using_gamepad_cursor and event.is_action_pressed("jump") and not event.is_echo():
 		_press_gamepad_ui_cursor()
@@ -266,12 +278,15 @@ func _update_gamepad_ui_cursor(delta: float) -> void:
 		_release_gamepad_ui_cursor()
 		_gamepad_ui_cursor.visible = false
 		_gamepad_ui_cursor_active = false
+		_gamepad_ui_cursor_synced = false
 		_ui_using_gamepad_cursor = false
 		return
 	if not _gamepad_ui_cursor_active:
 		var viewport_size: Vector2 = get_viewport_rect().size
-		_gamepad_ui_cursor_pos = viewport_size * 0.5
+		_gamepad_ui_cursor_pos = _current_ui_pointer_position(viewport_size * 0.5)
+		_remember_ui_pointer_position(_gamepad_ui_cursor_pos)
 		_last_virtual_mouse_pos = _gamepad_ui_cursor_pos
+		_gamepad_ui_cursor_synced = false
 		_gamepad_ui_cursor_active = true
 	if not _ui_using_gamepad_cursor:
 		_gamepad_ui_cursor.visible = false
@@ -292,12 +307,17 @@ func _update_gamepad_ui_cursor(delta: float) -> void:
 	var viewport_rect: Rect2 = get_viewport_rect()
 	_gamepad_ui_cursor_pos.x = clampf(_gamepad_ui_cursor_pos.x, 0.0, viewport_rect.size.x)
 	_gamepad_ui_cursor_pos.y = clampf(_gamepad_ui_cursor_pos.y, 0.0, viewport_rect.size.y)
+	_remember_ui_pointer_position(_gamepad_ui_cursor_pos)
 	_gamepad_ui_cursor.visible = true
 	_gamepad_ui_cursor.position = _gamepad_ui_cursor_pos - _gamepad_ui_cursor.size * 0.5
-	_emit_virtual_mouse_motion(_gamepad_ui_cursor_pos)
+	var moved: bool = _gamepad_ui_cursor_pos.distance_to(_last_virtual_mouse_pos) > 0.01
+	if not _gamepad_ui_cursor_synced or moved or _gamepad_ui_dragging:
+		_emit_virtual_mouse_motion(_gamepad_ui_cursor_pos)
+		_gamepad_ui_cursor_synced = true
 
 
 func _emit_virtual_mouse_motion(pos: Vector2) -> void:
+	_remember_ui_pointer_position(pos)
 	_last_warped_mouse_position = pos
 	_ignore_warped_mouse_motion_until_msec = Time.get_ticks_msec() + 80
 	Input.warp_mouse(pos)
@@ -325,6 +345,7 @@ func _press_gamepad_ui_cursor() -> void:
 		return
 	_gamepad_ui_dragging = true
 	var pos: Vector2 = _gamepad_ui_cursor_pos
+	_remember_ui_pointer_position(pos)
 	var press := InputEventMouseButton.new()
 	press.device = VIRTUAL_UI_MOUSE_DEVICE
 	press.button_index = MOUSE_BUTTON_LEFT
@@ -340,6 +361,7 @@ func _release_gamepad_ui_cursor() -> void:
 		return
 	_gamepad_ui_dragging = false
 	var pos: Vector2 = _gamepad_ui_cursor_pos
+	_remember_ui_pointer_position(pos)
 	var release := InputEventMouseButton.new()
 	release.device = VIRTUAL_UI_MOUSE_DEVICE
 	release.button_index = MOUSE_BUTTON_LEFT
@@ -350,18 +372,27 @@ func _release_gamepad_ui_cursor() -> void:
 
 
 func _set_ui_input_mode_mouse() -> void:
+	var target_pos: Vector2 = _current_ui_pointer_position(_gamepad_ui_cursor_pos)
 	_ui_using_gamepad_cursor = false
+	_ignore_gamepad_reentry_until_msec = Time.get_ticks_msec() + GAMEPAD_UI_MOUSE_TAKEOVER_GRACE_MSEC
 	if _gamepad_ui_cursor != null:
 		_gamepad_ui_cursor.visible = false
 	_release_gamepad_ui_cursor()
+	_sync_hidden_mouse_to_position(target_pos)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 
 func _set_ui_input_mode_gamepad() -> void:
 	if not GameState.operator_menu_open:
 		return
+	var target_pos: Vector2 = _current_ui_pointer_position(_gamepad_ui_cursor_pos)
 	_ui_using_gamepad_cursor = true
+	_gamepad_ui_cursor_synced = false
+	_gamepad_ui_cursor_pos = target_pos
+	_remember_ui_pointer_position(target_pos)
+	_last_virtual_mouse_pos = target_pos
 	if _gamepad_ui_cursor != null:
+		_gamepad_ui_cursor.position = _gamepad_ui_cursor_pos - _gamepad_ui_cursor.size * 0.5
 		_gamepad_ui_cursor.visible = true
 	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 
@@ -372,6 +403,47 @@ func force_ui_input_mode_gamepad() -> void:
 
 func force_ui_input_mode_mouse() -> void:
 	_set_ui_input_mode_mouse()
+
+
+func reset_ui_pointer_session() -> void:
+	var center: Vector2 = get_viewport_rect().size * 0.5
+	_shared_ui_pointer_pos = center
+	_shared_ui_pointer_valid = true
+	_gamepad_ui_cursor_pos = center
+	_last_virtual_mouse_pos = center
+	_last_warped_mouse_position = center
+	_ignore_warped_mouse_motion_until_msec = 0
+	_ignore_gamepad_reentry_until_msec = 0
+	_gamepad_ui_cursor_synced = false
+	_gamepad_ui_cursor_active = false
+	if _gamepad_ui_cursor != null:
+		_gamepad_ui_cursor.position = center - _gamepad_ui_cursor.size * 0.5
+
+
+func _remember_ui_pointer_position(pos: Vector2) -> void:
+	_shared_ui_pointer_pos = pos
+	_shared_ui_pointer_valid = true
+
+
+func _current_ui_pointer_position(fallback: Vector2 = Vector2.ZERO) -> Vector2:
+	if _shared_ui_pointer_valid:
+		return _shared_ui_pointer_pos
+	if fallback != Vector2.ZERO:
+		return fallback
+	return get_viewport_rect().size * 0.5
+
+
+func _sync_hidden_mouse_to_position(pos: Vector2) -> void:
+	_remember_ui_pointer_position(pos)
+	_last_warped_mouse_position = pos
+	_ignore_warped_mouse_motion_until_msec = Time.get_ticks_msec() + 80
+	Input.warp_mouse(pos)
+
+
+func _is_near_shared_ui_pointer(pos: Vector2) -> bool:
+	if not _shared_ui_pointer_valid:
+		return false
+	return pos.distance_to(_shared_ui_pointer_pos) <= GAMEPAD_UI_SYNC_IGNORE_RADIUS
 
 
 func _update_sprint_energy_bar() -> void:

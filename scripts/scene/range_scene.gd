@@ -66,6 +66,8 @@ func _set_operator_menu(open: bool, prefer_gamepad_ui: bool = false) -> void:
 		if open and operator_overlay.has_method("refresh"):
 			operator_overlay.call("refresh")
 	if open:
+		if hud != null and hud.has_method("reset_ui_pointer_session"):
+			hud.call("reset_ui_pointer_session")
 		if prefer_gamepad_ui and hud != null and hud.has_method("force_ui_input_mode_gamepad"):
 			hud.call("force_ui_input_mode_gamepad")
 		else:
