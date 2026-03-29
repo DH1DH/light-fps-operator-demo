@@ -74,6 +74,7 @@ var _tooltip_title: Label
 var _current_tooltip_operator_id: String = ""
 var _tooltip_font_regular: SystemFont
 var _tooltip_font_bold: SystemFont
+var _preserve_tooltip_during_refresh: bool = false
 
 var _save_tip: Label
 var _closing_with_save: bool = false
@@ -84,6 +85,9 @@ var _drag_candidate_index: int = -1
 var _drag_candidate_definition: OperatorDefinition = null
 var _drag_candidate_start_time: float = 0.0
 var _drag_candidate_start_mouse: Vector2 = Vector2.ZERO
+var _ui_pointer_position: Vector2 = Vector2.ZERO
+var _ui_pointer_has_position: bool = false
+var _ui_pointer_left_pressed: bool = false
 
 var _drag_active: bool = false
 var _drag_hand: String = ""
@@ -116,16 +120,33 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	_update_drag_state()
 	if _tooltip_panel != null and _tooltip_panel.visible:
-		_position_tooltip(get_viewport().get_mouse_position())
+		_position_tooltip(_get_ui_pointer_position())
 
 
 func _input(event: InputEvent) -> void:
-	if _tooltip_panel == null or not _tooltip_panel.visible:
-		return
 	if event is InputEventMouseMotion:
 		var motion: InputEventMouseMotion = event
-		_position_tooltip(motion.position)
+		_ui_pointer_position = motion.position
+		_ui_pointer_has_position = true
+		if _tooltip_panel != null and _tooltip_panel.visible:
+			_position_tooltip(motion.position)
+	elif event is InputEventMouseButton:
+		var mouse_button: InputEventMouseButton = event
+		_ui_pointer_position = mouse_button.position
+		_ui_pointer_has_position = true
+		if mouse_button.button_index == MOUSE_BUTTON_LEFT:
+			_ui_pointer_left_pressed = mouse_button.pressed
+			if mouse_button.pressed and not _closing_with_save and not _drag_active:
+				var hovered: Control = get_viewport().gui_get_hovered_control()
+				var drag_payload: Dictionary = _drag_payload_from_control(hovered)
+				if not drag_payload.is_empty():
+					_start_drag_candidate(
+						str(drag_payload.get("hand", "")),
+						int(drag_payload.get("index", -1)),
+						drag_payload.get("definition", null) as OperatorDefinition
+					)
 
 
 func _exit_tree() -> void:
@@ -305,6 +326,8 @@ func _create_loadout_row(definition: OperatorDefinition, index: int, display_num
 	drag_area.name = "DragArea"
 	drag_area.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	drag_area.mouse_filter = Control.MOUSE_FILTER_STOP
+	drag_area.set_meta("loadout_drag_hand", hand)
+	drag_area.set_meta("loadout_drag_index", index)
 	_bind_operator_hover(drag_area, definition)
 	var drag_style := StyleBoxFlat.new()
 	drag_style.bg_color = Color(0.12, 0.15, 0.2, 0.86)
@@ -331,6 +354,8 @@ func _create_loadout_row(definition: OperatorDefinition, index: int, display_num
 	drag_label.text = definition.display_name
 	drag_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	drag_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	drag_label.set_meta("loadout_drag_hand", hand)
+	drag_label.set_meta("loadout_drag_index", index)
 	drag_margin.add_child(drag_label)
 	_bind_operator_hover(drag_label, definition)
 
@@ -440,8 +465,11 @@ func _on_drag_area_input(event: InputEvent, hand: String, index: int, definition
 		return
 	if event is InputEventMouseButton:
 		var mouse_event: InputEventMouseButton = event
+		_ui_pointer_position = mouse_event.position
+		_ui_pointer_has_position = true
 		if mouse_event.button_index != MOUSE_BUTTON_LEFT:
 			return
+		_ui_pointer_left_pressed = mouse_event.pressed
 		if mouse_event.pressed:
 			_start_drag_candidate(hand, index, definition)
 		else:
@@ -456,7 +484,7 @@ func _start_drag_candidate(hand: String, index: int, definition: OperatorDefinit
 	_drag_candidate_index = index
 	_drag_candidate_definition = definition
 	_drag_candidate_start_time = Time.get_ticks_msec() / 1000.0
-	_drag_candidate_start_mouse = get_viewport().get_mouse_position()
+	_drag_candidate_start_mouse = _get_ui_pointer_position()
 
 
 func _clear_drag_candidate() -> void:
@@ -470,7 +498,7 @@ func _clear_drag_candidate() -> void:
 
 func _update_drag_state() -> void:
 	if _drag_candidate_active and not _drag_active:
-		if not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		if not _ui_pointer_left_pressed:
 			_clear_drag_candidate()
 		else:
 			var now: float = Time.get_ticks_msec() / 1000.0
@@ -480,7 +508,7 @@ func _update_drag_state() -> void:
 	if not _drag_active:
 		return
 
-	if not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+	if not _ui_pointer_left_pressed:
 		_finish_drag()
 		return
 
@@ -531,14 +559,16 @@ func _finish_drag() -> void:
 	var hand: String = _drag_hand
 	var from_index: int = _drag_from_index
 	var to_index: int = _drag_to_index
-	_cancel_drag_interaction()
+	_cancel_drag_interaction(false)
 	if from_index >= 0 and to_index >= 0 and from_index != to_index:
+		_preserve_tooltip_during_refresh = true
 		GameState.move_loadout(from_index, to_index, hand)
+		call_deferred("_restore_tooltip_after_refresh")
 	else:
 		refresh()
 
 
-func _cancel_drag_interaction() -> void:
+func _cancel_drag_interaction(refresh_after: bool = true) -> void:
 	_clear_drag_candidate()
 	_drag_active = false
 	_drag_hand = ""
@@ -551,7 +581,8 @@ func _cancel_drag_interaction() -> void:
 	_drag_floating_anchor_x = 0.0
 	_drag_floating_min_y = 0.0
 	_drag_floating_max_y = 0.0
-	_refresh_if_alive()
+	if refresh_after:
+		_refresh_if_alive()
 
 
 func _refresh_if_alive() -> void:
@@ -621,10 +652,16 @@ func _refresh_drag_floating_bounds() -> void:
 func _update_drag_floating_position() -> void:
 	if _drag_floating == null or not _drag_floating.visible:
 		return
-	var mouse_pos: Vector2 = get_viewport().get_mouse_position()
+	var mouse_pos: Vector2 = _get_ui_pointer_position()
 	var target_y: float = mouse_pos.y + DRAG_FLOAT_OFFSET.y
 	var clamped_y: float = clampf(target_y, _drag_floating_min_y, _drag_floating_max_y)
 	_drag_floating.position = Vector2(_drag_floating_anchor_x, clamped_y)
+
+
+func _get_ui_pointer_position() -> Vector2:
+	if not _ui_pointer_has_position:
+		return get_viewport().get_mouse_position()
+	return _ui_pointer_position
 
 
 func _setup_save_tip() -> void:
@@ -862,6 +899,9 @@ func _show_operator_tooltip(definition: OperatorDefinition, source_control: Cont
 		return
 	if definition == null or _drag_active:
 		return
+	if _tooltip_panel.visible and _current_tooltip_operator_id == definition.id:
+		_position_tooltip(_get_ui_pointer_position())
+		return
 	_current_tooltip_operator_id = definition.id
 	_tooltip_title.text = definition.display_name
 	_clear_children(_tooltip_content)
@@ -904,7 +944,7 @@ func _show_operator_tooltip(definition: OperatorDefinition, source_control: Cont
 
 	_tooltip_panel.visible = true
 	_fit_tooltip_size_to_viewport(segments)
-	var pos: Vector2 = source_control.get_global_mouse_position()
+	var pos: Vector2 = _get_ui_pointer_position()
 	_position_tooltip(pos)
 
 
@@ -953,6 +993,8 @@ func _estimate_tooltip_content_height(segments: Array[String], panel_width: floa
 func _hide_tooltip_if_needed() -> void:
 	if _tooltip_panel == null:
 		return
+	if _preserve_tooltip_during_refresh:
+		return
 	var hovered: Control = get_viewport().gui_get_hovered_control()
 	if hovered != null:
 		var definition: OperatorDefinition = _definition_from_control(hovered)
@@ -977,6 +1019,30 @@ func _definition_from_control(control: Control) -> OperatorDefinition:
 					return definition
 		cursor = cursor.get_parent()
 	return null
+
+
+func _drag_payload_from_control(control: Control) -> Dictionary:
+	var cursor: Node = control
+	while cursor != null:
+		if cursor is Control and (cursor as Control).has_meta("loadout_drag_hand"):
+			var payload: Dictionary = {}
+			payload["hand"] = str((cursor as Control).get_meta("loadout_drag_hand", ""))
+			payload["index"] = int((cursor as Control).get_meta("loadout_drag_index", -1))
+			payload["definition"] = _definition_from_control(cursor as Control)
+			return payload
+		cursor = cursor.get_parent()
+	return {}
+
+
+func _restore_tooltip_after_refresh() -> void:
+	_preserve_tooltip_during_refresh = false
+	var hovered: Control = get_viewport().gui_get_hovered_control()
+	if hovered != null:
+		var definition: OperatorDefinition = _definition_from_control(hovered)
+		if definition != null:
+			_show_operator_tooltip(definition, hovered)
+			return
+	_hide_tooltip_immediately()
 
 
 func _position_tooltip(mouse_pos: Vector2) -> void:

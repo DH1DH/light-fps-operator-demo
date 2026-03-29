@@ -302,12 +302,8 @@ func _spawn_effect_burst(tag: String) -> void:
 	add_child(burst)
 	burst.emitting = true
 	_active_effect_bursts += 1
-	var timer := get_tree().create_timer(burst.lifetime + 0.25)
-	timer.timeout.connect(func() -> void:
-		if is_instance_valid(burst):
-			burst.queue_free()
-		_active_effect_bursts = maxi(0, _active_effect_bursts - 1)
-	)
+	burst.finished.connect(Callable(burst, "queue_free"))
+	burst.tree_exited.connect(_on_effect_burst_tree_exited)
 
 
 func _clear_runtime_bursts() -> void:
@@ -317,6 +313,10 @@ func _clear_runtime_bursts() -> void:
 		if child is GPUParticles3D:
 			child.queue_free()
 	_active_effect_bursts = 0
+
+
+func _on_effect_burst_tree_exited() -> void:
+	_active_effect_bursts = maxi(0, _active_effect_bursts - 1)
 
 
 func _create_effect_material(preset: Dictionary) -> ParticleProcessMaterial:

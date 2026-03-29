@@ -48,6 +48,18 @@ const INVALID_POS := Vector3(1e20, 1e20, 1e20)
 @export var fire_jitter_rotation_deg: float = 0.8
 @export var fire_jitter_decay: float = 7.0
 @export var fire_jitter_frequency: float = 34.0
+@export var strafe_tilt_yaw_deg: float = 0.0
+@export var strafe_tilt_roll_deg: float = 6.72
+@export var strafe_tilt_pitch_deg: float = 0.0
+@export var strafe_tilt_position_x: float = 0.018
+@export var strafe_tilt_response_speed: float = 4.5
+@export var strafe_tilt_max_speed: float = 6.0
+@export var move_pitch_deg: float = 1.68
+@export var move_pitch_response_speed: float = 4.0
+@export var move_pitch_max_speed: float = 6.0
+@export var movement_tilt_curve_power: float = 2.0
+@export var sprint_viewmodel_motion_multiplier: float = 1.0
+@export var sprint_viewmodel_motion_blend_speed: float = 7.0
 
 @onready var shoot_camera: Camera3D = $"../CameraPivot/Camera3D"
 
@@ -70,6 +82,9 @@ var _fire_jitter_strength: float = 0.0
 var _fire_jitter_phase: float = 0.0
 var _last_shot_hand: String = HAND_RIGHT
 var _hand_kick: Dictionary = {HAND_LEFT: 0.0, HAND_RIGHT: 0.0}
+var _hand_strafe_tilt: Dictionary = {HAND_LEFT: 0.0, HAND_RIGHT: 0.0}
+var _hand_move_pitch: Dictionary = {HAND_LEFT: 0.0, HAND_RIGHT: 0.0}
+var _current_sprint_viewmodel_multiplier: float = 1.0
 var _phase_state_by_hand: Dictionary = {
 	HAND_LEFT: ShotContext.ShotPhase.BUILD,
 	HAND_RIGHT: ShotContext.ShotPhase.BUILD,
@@ -812,6 +827,18 @@ func _update_recoil(delta: float) -> void:
 	_fire_jitter_strength = move_toward(_fire_jitter_strength, 0.0, fire_jitter_decay * delta)
 	_hand_kick[HAND_LEFT] = move_toward(float(_hand_kick.get(HAND_LEFT, 0.0)), 0.0, recoil_position_recover_speed * delta)
 	_hand_kick[HAND_RIGHT] = move_toward(float(_hand_kick.get(HAND_RIGHT, 0.0)), 0.0, recoil_position_recover_speed * delta)
+	var target_strafe_tilt: float = _target_strafe_tilt_amount()
+	var target_move_pitch: float = _target_move_pitch_amount()
+	var sprint_target_multiplier: float = sprint_viewmodel_motion_multiplier if Input.is_action_pressed("sprint") else 1.0
+	_current_sprint_viewmodel_multiplier = move_toward(
+		_current_sprint_viewmodel_multiplier,
+		maxf(1.0, sprint_target_multiplier),
+		sprint_viewmodel_motion_blend_speed * delta
+	)
+	_hand_strafe_tilt[HAND_LEFT] = move_toward(float(_hand_strafe_tilt.get(HAND_LEFT, 0.0)), target_strafe_tilt, strafe_tilt_response_speed * delta)
+	_hand_strafe_tilt[HAND_RIGHT] = move_toward(float(_hand_strafe_tilt.get(HAND_RIGHT, 0.0)), target_strafe_tilt, strafe_tilt_response_speed * delta)
+	_hand_move_pitch[HAND_LEFT] = move_toward(float(_hand_move_pitch.get(HAND_LEFT, 0.0)), target_move_pitch, move_pitch_response_speed * delta)
+	_hand_move_pitch[HAND_RIGHT] = move_toward(float(_hand_move_pitch.get(HAND_RIGHT, 0.0)), target_move_pitch, move_pitch_response_speed * delta)
 	_fire_jitter_phase += delta * fire_jitter_frequency
 	var jitter_wave: float = sin(_fire_jitter_phase) * _fire_jitter_strength
 	var jitter_wave_2: float = sin(_fire_jitter_phase * 1.37 + 0.8) * _fire_jitter_strength
@@ -855,14 +882,76 @@ func _update_recoil(delta: float) -> void:
 	shoot_camera.transform = t
 
 
+func _target_strafe_tilt_amount() -> float:
+	var owner_body := get_parent()
+	if not (owner_body is CharacterBody3D):
+		return 0.0
+	var body: CharacterBody3D = owner_body as CharacterBody3D
+	var local_velocity: Vector3 = body.global_basis.inverse() * body.velocity
+	var max_speed: float = _movement_tilt_max_speed(strafe_tilt_max_speed)
+	return _apply_movement_tilt_curve(local_velocity.x / max_speed)
+
+
+func _target_move_pitch_amount() -> float:
+	var owner_body := get_parent()
+	if not (owner_body is CharacterBody3D):
+		return 0.0
+	var body: CharacterBody3D = owner_body as CharacterBody3D
+	var local_velocity: Vector3 = body.global_basis.inverse() * body.velocity
+	var max_speed: float = _movement_tilt_max_speed(move_pitch_max_speed)
+	return _apply_movement_tilt_curve(local_velocity.z / max_speed)
+
+
+func _movement_tilt_max_speed(base_speed: float) -> float:
+	var owner_body := get_parent()
+	if not (owner_body is CharacterBody3D):
+		return maxf(0.01, base_speed)
+	var sprint_mul: float = 1.0
+	var sprint_mul_value: Variant = owner_body.get("sprint_multiplier")
+	if sprint_mul_value is float or sprint_mul_value is int:
+		sprint_mul = maxf(1.0, float(sprint_mul_value))
+	return maxf(0.01, base_speed * sprint_mul)
+
+
+func _apply_movement_tilt_curve(value: float) -> float:
+	var normalized: float = clampf(value, -1.0, 1.0)
+	var sign_value: float = -1.0 if normalized < 0.0 else 1.0
+	return sign_value * pow(absf(normalized), maxf(1.0, movement_tilt_curve_power))
+
+
 func _update_hand_viewmodel_offsets() -> void:
 	var hand_offset_x: float = absf(viewmodel_offset.x)
+	var motion_multiplier: float = _current_viewmodel_motion_multiplier()
 	if _viewmodel_left != null and is_instance_valid(_viewmodel_left):
-		_viewmodel_left.position = Vector3(-hand_offset_x, 0.0, float(_hand_kick.get(HAND_LEFT, 0.0)))
-		_viewmodel_left.basis = Basis.from_euler(Vector3(-_reload_spin_for_hand(HAND_LEFT), 0.0, 0.0))
+		var left_tilt: float = float(_hand_strafe_tilt.get(HAND_LEFT, 0.0)) * motion_multiplier
+		var left_pitch: float = float(_hand_move_pitch.get(HAND_LEFT, 0.0)) * motion_multiplier
+		_viewmodel_left.position = Vector3(
+			-hand_offset_x + left_tilt * strafe_tilt_position_x,
+			0.0,
+			float(_hand_kick.get(HAND_LEFT, 0.0))
+		)
+		_viewmodel_left.basis = Basis.from_euler(Vector3(
+			-_reload_spin_for_hand(HAND_LEFT) + deg_to_rad(left_tilt * strafe_tilt_pitch_deg) + deg_to_rad(left_pitch * move_pitch_deg),
+			deg_to_rad(-left_tilt * strafe_tilt_yaw_deg),
+			deg_to_rad(-left_tilt * strafe_tilt_roll_deg)
+		))
 	if _viewmodel_right != null and is_instance_valid(_viewmodel_right):
-		_viewmodel_right.position = Vector3(hand_offset_x, 0.0, float(_hand_kick.get(HAND_RIGHT, 0.0)))
-		_viewmodel_right.basis = Basis.from_euler(Vector3(-_reload_spin_for_hand(HAND_RIGHT), 0.0, 0.0))
+		var right_tilt: float = float(_hand_strafe_tilt.get(HAND_RIGHT, 0.0)) * motion_multiplier
+		var right_pitch: float = float(_hand_move_pitch.get(HAND_RIGHT, 0.0)) * motion_multiplier
+		_viewmodel_right.position = Vector3(
+			hand_offset_x + right_tilt * strafe_tilt_position_x,
+			0.0,
+			float(_hand_kick.get(HAND_RIGHT, 0.0))
+		)
+		_viewmodel_right.basis = Basis.from_euler(Vector3(
+			-_reload_spin_for_hand(HAND_RIGHT) + deg_to_rad(right_tilt * strafe_tilt_pitch_deg) + deg_to_rad(right_pitch * move_pitch_deg),
+			deg_to_rad(-right_tilt * strafe_tilt_yaw_deg),
+			deg_to_rad(-right_tilt * strafe_tilt_roll_deg)
+		))
+
+
+func _current_viewmodel_motion_multiplier() -> float:
+	return maxf(1.0, _current_sprint_viewmodel_multiplier)
 
 
 func _reload_spin_for_hand(hand: String) -> float:

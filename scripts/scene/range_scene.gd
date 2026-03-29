@@ -5,6 +5,7 @@ const HubUi = preload("res://scripts/ui/hub_ui.gd")
 const FX_GROUP := "runtime_vfx"
 
 @onready var operator_overlay: Control = %OperatorOverlay
+@onready var hud: Control = $CanvasLayer/HUD
 
 func _ready() -> void:
 	if operator_overlay is HubUi:
@@ -22,7 +23,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if GameState.operator_menu_open:
 			_request_overlay_close_with_save()
 		else:
-			_set_operator_menu(true)
+			_set_operator_menu(true, _event_prefers_gamepad_ui(event))
 		return
 	if GameState.operator_menu_open:
 		return
@@ -58,14 +59,26 @@ func _reset_targets_recursive(node: Node, seen: Dictionary, count: int) -> int:
 	return count
 
 
-func _set_operator_menu(open: bool) -> void:
+func _set_operator_menu(open: bool, prefer_gamepad_ui: bool = false) -> void:
 	GameState.set_operator_menu_open(open)
 	if operator_overlay != null:
 		operator_overlay.visible = open
 		if open and operator_overlay.has_method("refresh"):
 			operator_overlay.call("refresh")
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if open else Input.MOUSE_MODE_CAPTURED
+	if open:
+		if prefer_gamepad_ui and hud != null and hud.has_method("force_ui_input_mode_gamepad"):
+			hud.call("force_ui_input_mode_gamepad")
+		else:
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+			if hud != null and hud.has_method("force_ui_input_mode_mouse"):
+				hud.call("force_ui_input_mode_mouse")
+	else:
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	DebugLog.add_entry("Operator menu: %s" % ("open" if open else "closed"))
+
+
+func _event_prefers_gamepad_ui(event: InputEvent) -> bool:
+	return event is InputEventJoypadButton or event is InputEventJoypadMotion
 
 
 func _request_overlay_close_with_save() -> void:

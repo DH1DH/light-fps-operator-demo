@@ -283,6 +283,18 @@ func _ensure_input_map() -> void:
 	_add_key_action("toggle_operator_menu", KEY_TAB)
 	_ensure_mouse_action("shoot_left", MOUSE_BUTTON_LEFT)
 	_ensure_mouse_action("shoot_right", MOUSE_BUTTON_RIGHT)
+	_ensure_joy_axis_action("move_left", JOY_AXIS_LEFT_X, -1.0)
+	_ensure_joy_axis_action("move_right", JOY_AXIS_LEFT_X, 1.0)
+	_ensure_joy_axis_action("move_forward", JOY_AXIS_LEFT_Y, -1.0)
+	_ensure_joy_axis_action("move_back", JOY_AXIS_LEFT_Y, 1.0)
+	_ensure_joy_button_action("jump", JOY_BUTTON_A)
+	_ensure_joy_button_action("reload", JOY_BUTTON_X)
+	_ensure_joy_button_action("sprint", JOY_BUTTON_LEFT_STICK)
+	_ensure_joy_button_action("toggle_operator_menu", JOY_BUTTON_START)
+	_ensure_joy_button_action("reset_targets", JOY_BUTTON_Y)
+	_ensure_joy_button_action("toggle_cursor", JOY_BUTTON_BACK)
+	_ensure_joy_axis_action("shoot_left", JOY_AXIS_TRIGGER_LEFT, 1.0)
+	_ensure_joy_axis_action("shoot_right", JOY_AXIS_TRIGGER_RIGHT, 1.0)
 	if not InputMap.has_action("shoot"):
 		InputMap.add_action("shoot")
 	var mouse: InputEventMouseButton = InputEventMouseButton.new()
@@ -318,6 +330,25 @@ func _ensure_mouse_action(action_name: String, button: MouseButton) -> void:
 		InputMap.add_action(action_name)
 	var event: InputEventMouseButton = InputEventMouseButton.new()
 	event.button_index = button
+	if not InputMap.action_has_event(action_name, event):
+		InputMap.action_add_event(action_name, event)
+
+
+func _ensure_joy_button_action(action_name: String, button: JoyButton) -> void:
+	if not InputMap.has_action(action_name):
+		InputMap.add_action(action_name)
+	var event := InputEventJoypadButton.new()
+	event.button_index = button
+	if not InputMap.action_has_event(action_name, event):
+		InputMap.action_add_event(action_name, event)
+
+
+func _ensure_joy_axis_action(action_name: String, axis: JoyAxis, axis_value: float) -> void:
+	if not InputMap.has_action(action_name):
+		InputMap.add_action(action_name)
+	var event := InputEventJoypadMotion.new()
+	event.axis = axis
+	event.axis_value = axis_value
 	if not InputMap.action_has_event(action_name, event):
 		InputMap.action_add_event(action_name, event)
 

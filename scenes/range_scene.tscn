@@ -116,10 +116,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -4.0
-offset_top = -4.0
-offset_right = 4.0
-offset_bottom = 4.0
+offset_left = -2.0
+offset_top = -2.0
+offset_right = 2.0
+offset_bottom = 2.0
 color = Color(0.2, 1, 0.35, 0.95)
 
 [node name="TargetOverlayLayer" type="Control" parent="CanvasLayer/HUD"]
